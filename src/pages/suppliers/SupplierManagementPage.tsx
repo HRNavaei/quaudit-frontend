@@ -5,8 +5,7 @@ import {
   Button,
   Space,
   Input,
-  Modal,
-  Form,
+  Select,
   Popconfirm,
   Typography,
   message,
@@ -17,7 +16,6 @@ import {
 } from 'antd';
 import {
   SearchOutlined,
-  EditOutlined,
   DeleteOutlined,
   ShopOutlined,
   EyeOutlined,
@@ -42,46 +40,12 @@ export const SupplierManagementPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchText, setSearchText] = useState<string>('');
-  const [modalVisible, setModalVisible] = useState<boolean>(false);
-  const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'APPROVED' | 'PENDING'>('ALL');
   const [viewSupplier, setViewSupplier] = useState<Supplier | null>(null);
-  const [form] = Form.useForm();
 
   const { data: suppliers = [], isLoading } = useQuery({
     queryKey: ['suppliers'],
     queryFn: () => suppliersApi.getAll(),
-  });
-
-  const { data: pendingSuppliers = [] } = useQuery({
-    queryKey: ['suppliers', 'pending'],
-    queryFn: () => suppliersApi.getPending(),
-  });
-
-  const createMutation = useMutation({
-    mutationFn: suppliersApi.create,
-    onSuccess: () => {
-      message.success('Supplier profile created successfully');
-      queryClient.invalidateQueries({ queryKey: ['suppliers'] });
-      setModalVisible(false);
-      form.resetFields();
-    },
-    onError: (err: any) => {
-      message.error(err?.message || 'Failed to create supplier');
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: Partial<Supplier> }) =>
-      suppliersApi.update(id, updates),
-    onSuccess: () => {
-      message.success('Supplier updated successfully');
-      queryClient.invalidateQueries({ queryKey: ['suppliers'] });
-      setModalVisible(false);
-      setEditingSupplier(null);
-    },
-    onError: (err: any) => {
-      message.error(err?.message || 'Failed to update supplier');
-    },
   });
 
   const deleteMutation = useMutation({
@@ -95,42 +59,14 @@ export const SupplierManagementPage: React.FC = () => {
     },
   });
 
-  const handleOpenModal = (supplier?: Supplier) => {
-    if (supplier) {
-      setEditingSupplier(supplier);
-      form.setFieldsValue({
-        companyName: supplier.companyName,
-        description: supplier.description,
-        address: supplier.address,
-        phone: supplier.phone,
-        userId: supplier.userId,
-      });
-    } else {
-      setEditingSupplier(null);
-      form.resetFields();
-    }
-    setModalVisible(true);
-  };
-
-  const handleSubmit = async () => {
-    try {
-      const values = await form.validateFields();
-      if (editingSupplier) {
-        updateMutation.mutate({
-          id: editingSupplier.id,
-          updates: values,
-        });
-      } else {
-        createMutation.mutate(values);
-      }
-    } catch {
-      // validation error
-    }
-  };
-
   const filteredSuppliers = suppliers.filter((s) => {
     const text = `${s.companyName} ${s.phone || ''} ${s.address || ''}`.toLowerCase();
-    return text.includes(searchText.toLowerCase());
+    const matchesSearch = text.includes(searchText.toLowerCase());
+    const matchesStatus =
+      statusFilter === 'ALL' ||
+      (statusFilter === 'APPROVED' && s.isApproved) ||
+      (statusFilter === 'PENDING' && !s.isApproved);
+    return matchesSearch && matchesStatus;
   });
 
   return (
@@ -144,33 +80,28 @@ export const SupplierManagementPage: React.FC = () => {
             Oversee contracted appliance manufacturers, component suppliers, and production facilities.
           </Text>
         </div>
-
-        <Space style={{ width: isMobile ? '100%' : 'auto' }}>
-          <Button
-            type="primary"
-            icon={<ClockCircleOutlined />}
-            onClick={() => navigate('/suppliers/pending')}
-            block={isMobile}
-            style={{
-              height: 40,
-              background: pendingSuppliers.length > 0 ? '#f59e0b' : '#1677ff',
-              borderColor: pendingSuppliers.length > 0 ? '#f59e0b' : '#1677ff',
-            }}
-          >
-            Pending Approvals {pendingSuppliers.length > 0 ? `(${pendingSuppliers.length})` : ''}
-          </Button>
-        </Space>
       </div>
 
       <Card bordered={false} style={{ borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-        <div style={{ marginBottom: 16 }}>
+        <div style={{ marginBottom: 16, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <Input
             placeholder="Search suppliers by name, address, or phone..."
             prefix={<SearchOutlined style={{ color: '#9ca3af' }} />}
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            style={{ width: isMobile ? '100%' : 340 }}
+            style={{ flex: isMobile ? '1 1 100%' : '1 1 300px', minWidth: 200 }}
             allowClear
+          />
+
+          <Select
+            value={statusFilter}
+            onChange={setStatusFilter}
+            style={{ width: isMobile ? '100%' : 180 }}
+            options={[
+              { value: 'ALL', label: 'All Statuses' },
+              { value: 'APPROVED', label: 'Approved Only' },
+              { value: 'PENDING', label: 'Pending Approval' },
+            ]}
           />
         </div>
 
@@ -244,11 +175,16 @@ export const SupplierManagementPage: React.FC = () => {
             {
               title: 'Status',
               key: 'status',
-              render: () => (
-                <Tag color="green" icon={<CheckCircleOutlined />}>
-                  Approved
-                </Tag>
-              ),
+              render: (_, record) =>
+                record.isApproved ? (
+                  <Tag color="green" icon={<CheckCircleOutlined />}>
+                    Approved
+                  </Tag>
+                ) : (
+                  <Tag color="gold" icon={<ClockCircleOutlined />}>
+                    Pending Approval
+                  </Tag>
+                ),
             },
             {
               title: 'Actions',
@@ -262,11 +198,6 @@ export const SupplierManagementPage: React.FC = () => {
                   >
                     View
                   </Button>
-                  <Button
-                    type="text"
-                    icon={<EditOutlined />}
-                    onClick={() => handleOpenModal(record)}
-                  />
                   <Popconfirm
                     title="Delete Supplier"
                     description="This will delete the supplier and cascade to products. Continue?"
@@ -305,18 +236,33 @@ export const SupplierManagementPage: React.FC = () => {
         extra={
           viewSupplier && (
             <Space>
-              <Button
-                type="primary"
-                size="small"
-                icon={<SendOutlined />}
-                onClick={() => {
-                  const sId = viewSupplier.id;
-                  setViewSupplier(null);
-                  navigate('/assignments', { state: { supplierId: sId } });
-                }}
-              >
-                Dispatch Audit
-              </Button>
+              {viewSupplier.isApproved ? (
+                <Button
+                  type="primary"
+                  size="small"
+                  icon={<SendOutlined />}
+                  onClick={() => {
+                    const sId = viewSupplier.id;
+                    setViewSupplier(null);
+                    navigate('/assignments', { state: { supplierId: sId } });
+                  }}
+                >
+                  Dispatch Audit
+                </Button>
+              ) : (
+                <Button
+                  type="primary"
+                  size="small"
+                  icon={<CheckCircleOutlined />}
+                  style={{ background: '#52c41a', borderColor: '#52c41a' }}
+                  onClick={() => {
+                    setViewSupplier(null);
+                    navigate('/suppliers/pending');
+                  }}
+                >
+                  Review & Approve
+                </Button>
+              )}
               <Button
                 size="small"
                 icon={<AppstoreOutlined />}
@@ -347,9 +293,15 @@ export const SupplierManagementPage: React.FC = () => {
                 {viewSupplier.user ? `${viewSupplier.user.firstName} ${viewSupplier.user.lastName} (${viewSupplier.user.email})` : '—'}
               </Descriptions.Item>
               <Descriptions.Item label="Approval Status">
-                <Tag color="green" icon={<CheckCircleOutlined />}>
-                  Approved
-                </Tag>
+                {viewSupplier.isApproved ? (
+                  <Tag color="green" icon={<CheckCircleOutlined />}>
+                    Approved
+                  </Tag>
+                ) : (
+                  <Tag color="gold" icon={<ClockCircleOutlined />}>
+                    Pending Approval
+                  </Tag>
+                )}
               </Descriptions.Item>
               <Descriptions.Item label="Registered Since">
                 {new Date(viewSupplier.createdAt).toLocaleDateString()}
@@ -373,40 +325,6 @@ export const SupplierManagementPage: React.FC = () => {
           </div>
         )}
       </Drawer>
-
-      {/* Edit Modal */}
-      <Modal
-        title="Edit Supplier Profile"
-        open={modalVisible}
-        onCancel={() => setModalVisible(false)}
-        onOk={handleSubmit}
-        confirmLoading={updateMutation.isPending}
-        width={isMobile ? 'calc(100vw - 24px)' : 520}
-        style={{ top: isMobile ? 16 : undefined }}
-        destroyOnClose
-      >
-        <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
-          <Form.Item
-            name="companyName"
-            label="Company Name"
-            rules={[{ required: true, message: 'Please enter company name' }]}
-          >
-            <Input placeholder="e.g. Pars Home Appliances Co." />
-          </Form.Item>
-
-          <Form.Item name="description" label="Company Description">
-            <Input.TextArea rows={2} placeholder="Brief summary of manufacturing capabilities..." />
-          </Form.Item>
-
-          <Form.Item name="phone" label="Phone Number">
-            <Input placeholder="+98 21 8888 0000" />
-          </Form.Item>
-
-          <Form.Item name="address" label="Factory / Office Address">
-            <Input.TextArea rows={2} placeholder="Industrial zone, street, building number..." />
-          </Form.Item>
-        </Form>
-      </Modal>
     </div>
   );
 };

@@ -17,18 +17,15 @@ import {
   MailOutlined,
   PhoneOutlined,
   EnvironmentOutlined,
-  ArrowLeftOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
 import { suppliersApi } from '../../api/suppliers';
 import { Supplier } from '../../types';
 
 const { Title, Text } = Typography;
 
 export const PendingSuppliersPage: React.FC = () => {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const {
@@ -65,24 +62,19 @@ export const PendingSuppliersPage: React.FC = () => {
           gap: 12,
         }}
       >
-        <Space align="center" size="middle">
-          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/suppliers')}>
-            Back to Suppliers
-          </Button>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Title level={3} style={{ margin: 0, color: '#0f172a' }}>
-                Pending Supplier Registrations
-              </Title>
-              <Tag color="orange" style={{ fontSize: 13, padding: '2px 8px', borderRadius: 10 }}>
-                {pendingSuppliers.length} Pending
-              </Tag>
-            </div>
-            <Text type="secondary">
-              Review new vendor onboarding applications and grant access to the QuAudit platform.
-            </Text>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Title level={3} style={{ margin: 0, color: '#0f172a' }}>
+              Pending Supplier Registrations
+            </Title>
+            <Tag color="orange" style={{ fontSize: 13, padding: '2px 8px', borderRadius: 10 }}>
+              {pendingSuppliers.length} Pending
+            </Tag>
           </div>
-        </Space>
+          <Text type="secondary">
+            Review new vendor onboarding applications and grant access to the QuAudit platform.
+          </Text>
+        </div>
 
         <Button
           icon={<ReloadOutlined spin={isRefetching} />}

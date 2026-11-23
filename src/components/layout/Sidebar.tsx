@@ -18,6 +18,8 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { Role } from '../../types';
+import { useQuery } from '@tanstack/react-query';
+import { suppliersApi } from '../../api/suppliers';
 
 const { Sider } = Layout;
 
@@ -45,6 +47,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const role = user.role;
 
+  const { data: pendingSuppliers = [] } = useQuery({
+    queryKey: ['pendingSuppliers'],
+    queryFn: () => suppliersApi.getPending(),
+    enabled: role === 'SUPERVISOR' || role === 'ADMIN',
+    refetchInterval: 15000,
+  });
+  const pendingCount = pendingSuppliers.length;
+
   interface MenuItem {
     key: string;
     icon: React.ReactNode;
@@ -68,7 +78,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
     {
       key: '/suppliers/pending',
       icon: <ClockCircleOutlined />,
-      label: 'Pending Approvals',
+      label: (
+        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span>Pending Approvals</span>
+          {pendingCount > 0 && (
+            <span
+              style={{
+                background: '#faad14',
+                color: '#fff',
+                borderRadius: 10,
+                fontSize: 11,
+                padding: '0 6px',
+                height: 18,
+                lineHeight: '18px',
+                marginLeft: 8,
+                fontWeight: 600,
+              }}
+            >
+              {pendingCount}
+            </span>
+          )}
+        </span>
+      ),
       roles: ['SUPERVISOR', 'ADMIN'],
     },
     // All Roles (Suppliers see their own products)
@@ -155,6 +186,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (path.startsWith('/assignments') && !path.startsWith('/my-assignments')) return '/assignments';
     if (path.startsWith('/my-assignments')) return '/my-assignments';
     if (path.startsWith('/products')) return '/products';
+    if (path.startsWith('/suppliers/pending')) return '/suppliers/pending';
     if (path.startsWith('/suppliers')) return '/suppliers';
     if (path.startsWith('/responses')) return '/responses';
     if (path.startsWith('/analytics')) return '/analytics';
