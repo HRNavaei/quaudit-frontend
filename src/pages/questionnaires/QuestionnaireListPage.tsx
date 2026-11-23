@@ -10,6 +10,7 @@ import {
   message,
   Tooltip,
   Select,
+  Input,
 } from 'antd';
 import {
   PlusOutlined,
@@ -20,11 +21,13 @@ import {
   EyeOutlined,
   CopyOutlined,
   LockOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { questionnairesApi } from '../../api/questionnaires';
 import { StatusBadge } from '../../components/common/StatusBadge';
+import { EmptyState } from '../../components/common/EmptyState';
 import { Questionnaire, QuestionnaireStatus } from '../../types';
 
 const { Title, Text, Paragraph } = Typography;
@@ -32,6 +35,7 @@ const { Title, Text, Paragraph } = Typography;
 export const QuestionnaireListPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [searchText, setSearchText] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
   const { data: questionnaires = [], isLoading } = useQuery({
@@ -63,8 +67,10 @@ export const QuestionnaireListPage: React.FC = () => {
   });
 
   const filteredQuestionnaires = questionnaires.filter((q) => {
-    if (statusFilter === 'ALL') return true;
-    return q.status === statusFilter;
+    const text = `${q.title} ${q.description || ''}`.toLowerCase();
+    const matchSearch = !searchText || text.includes(searchText.toLowerCase());
+    const matchStatus = statusFilter === 'ALL' || q.status === statusFilter;
+    return matchSearch && matchStatus;
   });
 
   return (
@@ -99,8 +105,16 @@ export const QuestionnaireListPage: React.FC = () => {
       </div>
 
       <Card bordered={false} style={{ borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-        <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Text strong style={{ color: '#475569' }}>Filter by Status:</Text>
+        <div style={{ marginBottom: 16, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <Input
+            placeholder="Search questionnaires by title or description..."
+            prefix={<SearchOutlined style={{ color: '#9ca3af' }} />}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            style={{ width: 340 }}
+            allowClear
+          />
+
           <Select
             value={statusFilter}
             onChange={setStatusFilter}
@@ -117,6 +131,20 @@ export const QuestionnaireListPage: React.FC = () => {
           dataSource={filteredQuestionnaires}
           rowKey="id"
           loading={isLoading}
+          locale={{
+            emptyText: (
+              <EmptyState
+                title="No Questionnaires Found"
+                description={
+                  searchText || statusFilter !== 'ALL'
+                    ? 'No questionnaires match your search or filter criteria.'
+                    : 'No questionnaires created yet. Start by authoring your first audit checklist.'
+                }
+                actionText="Create Questionnaire"
+                onAction={() => navigate('/questionnaires/new')}
+              />
+            ),
+          }}
           columns={[
             {
               title: 'Title & Summary',

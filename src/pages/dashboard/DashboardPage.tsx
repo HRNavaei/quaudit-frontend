@@ -19,6 +19,7 @@ import { questionnairesApi } from '../../api/questionnaires';
 import { assignmentsApi } from '../../api/assignments';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
+import { EmptyState } from '../../components/common/EmptyState';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -245,6 +246,20 @@ export const DashboardPage: React.FC = () => {
               rowKey="id"
               pagination={false}
               size="middle"
+              locale={{
+                emptyText: (
+                  <EmptyState
+                    title={role === 'SUPPLIER' ? 'No Audits Assigned' : 'No Recent Assignments'}
+                    description={
+                      role === 'SUPPLIER'
+                        ? 'Your facility is up to date! There are currently no pending audits assigned to your company.'
+                        : 'No questionnaires have been dispatched yet. Assign an audit to start gathering compliance evidence.'
+                    }
+                    actionText={role !== 'SUPPLIER' ? 'Assign Audit' : undefined}
+                    onAction={role !== 'SUPPLIER' ? () => navigate('/assignments') : undefined}
+                  />
+                ),
+              }}
               columns={[
                 {
                   title: 'Questionnaire',

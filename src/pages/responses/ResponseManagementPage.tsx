@@ -12,6 +12,7 @@ import {
   Popconfirm,
   message,
   Spin,
+  Input,
 } from 'antd';
 import {
   EyeOutlined,
@@ -21,6 +22,7 @@ import {
   CheckCircleOutlined,
   BarChartOutlined,
   ThunderboltOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -28,6 +30,7 @@ import { useAuth } from '../../context/AuthContext';
 import { assignmentsApi } from '../../api/assignments';
 import { questionnairesApi } from '../../api/questionnaires';
 import { suppliersApi } from '../../api/suppliers';
+import { EmptyState } from '../../components/common/EmptyState';
 import { Answer, AiAssessmentResponse } from '../../types';
 import { DynamicQuestionRenderer } from '../../components/questionnaire/DynamicQuestionRenderer';
 import { AiAssessmentCard } from '../../components/ai/AiAssessmentCard';
@@ -44,6 +47,7 @@ export const ResponseManagementPage: React.FC = () => {
   const isSupplier = user?.role === 'SUPPLIER';
   const supplierId = user?.supplier?.id;
 
+  const [searchText, setSearchText] = useState<string>('');
   const [selectedQuestionnaireFilter, setSelectedQuestionnaireFilter] = useState<string>('ALL');
   const [selectedSupplierFilter, setSelectedSupplierFilter] = useState<string>('ALL');
   const [inspectedAssignmentId, setInspectedAssignmentId] = useState<string | null>(null);
@@ -125,11 +129,13 @@ export const ResponseManagementPage: React.FC = () => {
   const submittedResponses = assignments.filter((a) => a.status === 'SUBMITTED');
 
   const filteredResponses = submittedResponses.filter((a) => {
+    const text = `${a.questionnaire?.title || ''} ${a.supplier?.companyName || ''} ${a.product?.name || ''}`.toLowerCase();
+    const matchSearch = !searchText || text.includes(searchText.toLowerCase());
     const matchQ =
       selectedQuestionnaireFilter === 'ALL' || a.questionnaireId === selectedQuestionnaireFilter;
     const matchS =
       selectedSupplierFilter === 'ALL' || a.supplierId === selectedSupplierFilter;
-    return matchQ && matchS;
+    return matchSearch && matchQ && matchS;
   });
 
   // Answers map for inspected assignment
@@ -170,7 +176,20 @@ export const ResponseManagementPage: React.FC = () => {
 
       <Card bordered={false} style={{ borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
         <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+          <Input
+            placeholder="Search responses by title, supplier, or product..."
+            prefix={<SearchOutlined style={{ color: '#9ca3af' }} />}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            style={{ width: 340 }}
+            allowClear
+          />
+
           <Select
+            showSearch
+            filterOption={(input, option) =>
+              (option?.label as string ?? '').toLowerCase().includes(input.toLowerCase())
+            }
             value={selectedQuestionnaireFilter}
             onChange={setSelectedQuestionnaireFilter}
             style={{ width: 280 }}
@@ -182,6 +201,10 @@ export const ResponseManagementPage: React.FC = () => {
 
           {!isSupplier && (
             <Select
+              showSearch
+              filterOption={(input, option) =>
+                (option?.label as string ?? '').toLowerCase().includes(input.toLowerCase())
+              }
               value={selectedSupplierFilter}
               onChange={setSelectedSupplierFilter}
               style={{ width: 220 }}
@@ -197,6 +220,18 @@ export const ResponseManagementPage: React.FC = () => {
           dataSource={filteredResponses}
           rowKey="id"
           loading={isLoading}
+          locale={{
+            emptyText: (
+              <EmptyState
+                title="No Submitted Responses Found"
+                description={
+                  searchText || selectedQuestionnaireFilter !== 'ALL' || selectedSupplierFilter !== 'ALL'
+                    ? 'No responses match the active filters or search terms.'
+                    : 'No supplier audit submissions have been completed yet.'
+                }
+              />
+            ),
+          }}
           columns={[
             {
               title: 'Questionnaire Title',

@@ -22,23 +22,36 @@ import {
   ShopOutlined,
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'react-router-dom';
 import { productsApi } from '../../api/products';
 import { suppliersApi } from '../../api/suppliers';
 import { useAuth } from '../../context/AuthContext';
+import { EmptyState } from '../../components/common/EmptyState';
 import { Product } from '../../types';
 
 const { Title, Text, Paragraph } = Typography;
 
 export const ProductManagementPage: React.FC = () => {
   const queryClient = useQueryClient();
+  const location = useLocation();
   const { user } = useAuth();
   const isSupplier = user?.role === 'SUPPLIER';
 
   const [searchText, setSearchText] = useState<string>('');
-  const [selectedSupplierId, setSelectedSupplierId] = useState<string>('ALL');
+  const [selectedSupplierId, setSelectedSupplierId] = useState<string>(
+    (location.state as any)?.supplierId || 'ALL'
+  );
   const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [form] = Form.useForm();
+
+  // If redirected with supplierId in location.state, update filter
+  React.useEffect(() => {
+    const passedSupplierId = (location.state as any)?.supplierId;
+    if (passedSupplierId) {
+      setSelectedSupplierId(passedSupplierId);
+    }
+  }, [location.state]);
 
   const currentSupplierId = isSupplier ? user?.supplier?.id : undefined;
 
@@ -110,6 +123,8 @@ export const ProductManagementPage: React.FC = () => {
       form.resetFields();
       if (isSupplier && user?.supplier) {
         form.setFieldsValue({ supplierId: user.supplier.id });
+      } else if (!isSupplier && selectedSupplierId !== 'ALL') {
+        form.setFieldsValue({ supplierId: selectedSupplierId });
       }
     }
     setModalVisible(true);
@@ -187,6 +202,10 @@ export const ProductManagementPage: React.FC = () => {
 
           {!isSupplier && (
             <Select
+              showSearch
+              filterOption={(input, option) =>
+                (option?.label as string ?? '').toLowerCase().includes(input.toLowerCase())
+              }
               value={selectedSupplierId}
               onChange={setSelectedSupplierId}
               style={{ width: 240 }}
@@ -202,6 +221,20 @@ export const ProductManagementPage: React.FC = () => {
           dataSource={filteredProducts}
           rowKey="id"
           loading={isLoading}
+          locale={{
+            emptyText: (
+              <EmptyState
+                title="No Products Found"
+                description={
+                  searchText || selectedSupplierId !== 'ALL'
+                    ? 'No products match your current search or supplier filter.'
+                    : 'No products registered yet. Click below to add your first product.'
+                }
+                actionText="Add Product"
+                onAction={() => handleOpenModal()}
+              />
+            ),
+          }}
           columns={[
             {
               title: 'Product / Model',
@@ -325,7 +358,11 @@ export const ProductManagementPage: React.FC = () => {
               rules={[{ required: true, message: 'Select supplier' }]}
             >
               <Select
+                showSearch
                 placeholder="Choose manufacturing supplier"
+                filterOption={(input, option) =>
+                  (option?.label as string ?? '').toLowerCase().includes(input.toLowerCase())
+                }
                 options={suppliers.map((s) => ({ value: s.id, label: s.companyName }))}
               />
             </Form.Item>

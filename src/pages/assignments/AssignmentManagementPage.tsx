@@ -11,6 +11,7 @@ import {
   message,
   Popconfirm,
   Tag,
+  Input,
 } from 'antd';
 import {
   PlusOutlined,
@@ -19,6 +20,7 @@ import {
   EyeOutlined,
   ShopOutlined,
   AppstoreOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -27,6 +29,7 @@ import { questionnairesApi } from '../../api/questionnaires';
 import { suppliersApi } from '../../api/suppliers';
 import { productsApi } from '../../api/products';
 import { StatusBadge } from '../../components/common/StatusBadge';
+import { EmptyState } from '../../components/common/EmptyState';
 import { QuestionnaireAssignment } from '../../types';
 
 const { Title, Text } = Typography;
@@ -37,6 +40,7 @@ export const AssignmentManagementPage: React.FC = () => {
   const queryClient = useQueryClient();
 
   const [modalVisible, setModalVisible] = useState<boolean>(false);
+  const [searchText, setSearchText] = useState<string>('');
   const [selectedSupplierFilter, setSelectedSupplierFilter] = useState<string>('ALL');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('ALL');
   const [form] = Form.useForm();
@@ -65,11 +69,17 @@ export const AssignmentManagementPage: React.FC = () => {
     queryFn: () => productsApi.getAll(),
   });
 
-  // Automatically open modal if redirected from questionnaire list with state
+  // Automatically open modal if redirected from questionnaire list or supplier list with state
   React.useEffect(() => {
     const preselectedQId = (location.state as any)?.assignQuestionnaireId;
-    if (preselectedQId) {
-      form.setFieldsValue({ questionnaireId: preselectedQId });
+    const preselectedSupplierId = (location.state as any)?.supplierId;
+    if (preselectedQId || preselectedSupplierId) {
+      if (preselectedQId) {
+        form.setFieldsValue({ questionnaireId: preselectedQId });
+      }
+      if (preselectedSupplierId) {
+        form.setFieldsValue({ supplierId: preselectedSupplierId });
+      }
       setModalVisible(true);
     }
   }, [location.state, form]);
@@ -123,11 +133,13 @@ export const AssignmentManagementPage: React.FC = () => {
 
   // Filter assignments table
   const filteredAssignments = assignments.filter((a) => {
+    const text = `${a.questionnaire?.title || ''} ${a.supplier?.companyName || ''} ${a.product?.name || ''}`.toLowerCase();
+    const matchesSearch = !searchText || text.includes(searchText.toLowerCase());
     const matchSupplier =
       selectedSupplierFilter === 'ALL' || a.supplierId === selectedSupplierFilter;
     const matchStatus =
       selectedStatusFilter === 'ALL' || a.status === selectedStatusFilter;
-    return matchSupplier && matchStatus;
+    return matchesSearch && matchSupplier && matchStatus;
   });
 
   return (
@@ -155,7 +167,20 @@ export const AssignmentManagementPage: React.FC = () => {
       <Card bordered={false} style={{ borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
         {/* Filters */}
         <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+          <Input
+            placeholder="Search assignments by questionnaire, supplier, or product..."
+            prefix={<SearchOutlined style={{ color: '#9ca3af' }} />}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            style={{ width: 340 }}
+            allowClear
+          />
+
           <Select
+            showSearch
+            filterOption={(input, option) =>
+              (option?.label as string ?? '').toLowerCase().includes(input.toLowerCase())
+            }
             value={selectedSupplierFilter}
             onChange={setSelectedSupplierFilter}
             style={{ width: 220 }}
@@ -182,6 +207,20 @@ export const AssignmentManagementPage: React.FC = () => {
           dataSource={filteredAssignments}
           rowKey="id"
           loading={isLoading}
+          locale={{
+            emptyText: (
+              <EmptyState
+                title="No Assignments Found"
+                description={
+                  searchText || selectedSupplierFilter !== 'ALL' || selectedStatusFilter !== 'ALL'
+                    ? 'No assignments match the selected filters.'
+                    : 'No questionnaires have been assigned yet. Dispatch your first audit to a supplier.'
+                }
+                actionText={assignments.length === 0 ? 'Assign Questionnaire' : undefined}
+                onAction={assignments.length === 0 ? handleOpenAssignModal : undefined}
+              />
+            ),
+          }}
           columns={[
             {
               title: 'Questionnaire',
@@ -324,7 +363,11 @@ export const AssignmentManagementPage: React.FC = () => {
             ]}
           >
             <Select
+              showSearch
               placeholder="Select questionnaire to assign"
+              filterOption={(input, option) =>
+                (option?.label as string ?? '').toLowerCase().includes(input.toLowerCase())
+              }
               options={questionnaires.map((q) => {
                 const count = q.questions?.length || 0;
                 return {
@@ -342,7 +385,11 @@ export const AssignmentManagementPage: React.FC = () => {
             rules={[{ required: true, message: 'Please select a supplier' }]}
           >
             <Select
+              showSearch
               placeholder="Select manufacturing supplier"
+              filterOption={(input, option) =>
+                (option?.label as string ?? '').toLowerCase().includes(input.toLowerCase())
+              }
               options={suppliers.map((s) => ({
                 value: s.id,
                 label: s.companyName,
@@ -354,15 +401,28 @@ export const AssignmentManagementPage: React.FC = () => {
             name="productId"
             label="Specific Product Line (Optional)"
             tooltip="Choose if this audit targets a specific certified product; leave empty for general facility-wide audit."
+            help={
+              formSupplierId && eligibleProducts.length === 0 ? (
+                <span style={{ color: '#64748b' }}>
+                  This supplier currently has no registered products. This audit will automatically target the general facility.
+                </span>
+              ) : undefined
+            }
           >
             <Select
+              showSearch
+              filterOption={(input, option) =>
+                (option?.label as string ?? '').toLowerCase().includes(input.toLowerCase())
+              }
               placeholder={
                 formSupplierId
-                  ? 'Select product (or leave empty for facility audit)'
+                  ? eligibleProducts.length > 0
+                    ? 'Select product (or leave empty for facility audit)'
+                    : 'Facility-wide audit (No registered products)'
                   : 'Select supplier first'
               }
               allowClear
-              disabled={!formSupplierId}
+              disabled={!formSupplierId || eligibleProducts.length === 0}
               options={eligibleProducts.map((p) => ({
                 value: p.id,
                 label: `${p.name} (${p.category || 'Appliance'})`,

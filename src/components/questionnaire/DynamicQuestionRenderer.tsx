@@ -55,6 +55,7 @@ export const DynamicQuestionRenderer: React.FC<DynamicQuestionRendererProps> = (
 
   return (
     <Card
+      id={`question-${question.id}`}
       style={{
         marginBottom: 16,
         borderRadius: 8,

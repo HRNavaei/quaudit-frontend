@@ -175,8 +175,14 @@ export const QuestionnaireCompletionPage: React.FC = () => {
     });
 
     if (unanswered.length > 0) {
+      const firstUnanswered = unanswered[0];
+      const qIndex = visibleQuestions.findIndex((item) => item.id === firstUnanswered.id);
+      const el = document.getElementById(`question-${firstUnanswered.id}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
       message.error(
-        `Please answer all mandatory questions. ${unanswered.length} required field(s) remain incomplete.`
+        `Please complete required question #${qIndex + 1}: "${firstUnanswered.text.length > 45 ? firstUnanswered.text.slice(0, 45) + '...' : firstUnanswered.text}"`
       );
       return;
     }

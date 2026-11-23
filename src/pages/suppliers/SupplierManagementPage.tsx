@@ -25,10 +25,13 @@ import {
   EnvironmentOutlined,
   ClockCircleOutlined,
   CheckCircleOutlined,
+  SendOutlined,
+  AppstoreOutlined,
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { suppliersApi } from '../../api/suppliers';
+import { EmptyState } from '../../components/common/EmptyState';
 import { Supplier } from '../../types';
 
 const { Title, Text, Paragraph } = Typography;
@@ -273,6 +276,18 @@ export const SupplierManagementPage: React.FC = () => {
               ),
             },
           ]}
+          locale={{
+            emptyText: (
+              <EmptyState
+                title="No Suppliers Found"
+                description={
+                  searchText
+                    ? 'No suppliers match your search criteria.'
+                    : 'No approved suppliers in the directory yet.'
+                }
+              />
+            ),
+          }}
         />
       </Card>
 
@@ -283,6 +298,35 @@ export const SupplierManagementPage: React.FC = () => {
         width={500}
         onClose={() => setViewSupplier(null)}
         open={!!viewSupplier}
+        extra={
+          viewSupplier && (
+            <Space>
+              <Button
+                type="primary"
+                size="small"
+                icon={<SendOutlined />}
+                onClick={() => {
+                  const sId = viewSupplier.id;
+                  setViewSupplier(null);
+                  navigate('/assignments', { state: { supplierId: sId } });
+                }}
+              >
+                Dispatch Audit
+              </Button>
+              <Button
+                size="small"
+                icon={<AppstoreOutlined />}
+                onClick={() => {
+                  const sId = viewSupplier.id;
+                  setViewSupplier(null);
+                  navigate('/products', { state: { supplierId: sId } });
+                }}
+              >
+                Products
+              </Button>
+            </Space>
+          )
+        }
       >
         {viewSupplier && (
           <div>
