@@ -107,7 +107,12 @@ export const DashboardPage: React.FC = () => {
         <Space wrap style={{ width: isMobile ? '100%' : 'auto' }}>
           {role !== 'SUPPLIER' && (
             <>
-              <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/questionnaires/new')} block={isMobile}>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => navigate('/questionnaires', { state: { openCreateModal: true } })}
+                block={isMobile}
+              >
                 Create Questionnaire
               </Button>
               <Button icon={<AuditOutlined />} onClick={() => navigate('/assignments')} block={isMobile}>

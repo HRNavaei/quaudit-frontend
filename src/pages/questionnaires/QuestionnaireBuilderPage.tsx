@@ -13,6 +13,7 @@ import {
   Alert,
   Tooltip,
   Modal,
+  Popconfirm,
 } from 'antd';
 import {
   PlusOutlined,
@@ -101,10 +102,6 @@ export const QuestionnaireBuilderPage: React.FC = () => {
   const saveMutation = useMutation({
     mutationFn: async () => {
       const values = await form.validateFields();
-      if (!questions || questions.length === 0) {
-        message.error('A questionnaire must contain at least one question before saving.');
-        throw new Error('A questionnaire must contain at least one question.');
-      }
       let targetId = id;
 
       if (!isEditing) {
@@ -746,15 +743,29 @@ export const QuestionnaireBuilderPage: React.FC = () => {
               Clone Questionnaire
             </Button>
           ) : (
-            <Button
-              type="primary"
-              icon={<SaveOutlined />}
-              onClick={() => saveMutation.mutate()}
-              loading={saveMutation.isPending}
-              disabled={cycleInfo.hasCycle}
-            >
-              Save Questionnaire
-            </Button>
+            <>
+              <Popconfirm
+                title="Discard Questionnaire Changes?"
+                description="Are you sure you want to discard changes and return to questionnaires?"
+                onConfirm={() => navigate('/questionnaires')}
+                okText="Discard"
+                cancelText="Cancel"
+                okButtonProps={{ danger: true }}
+              >
+                <Button danger>
+                  Discard
+                </Button>
+              </Popconfirm>
+              <Button
+                type="primary"
+                icon={<SaveOutlined />}
+                onClick={() => saveMutation.mutate()}
+                loading={saveMutation.isPending}
+                disabled={cycleInfo.hasCycle}
+              >
+                Save Questionnaire
+              </Button>
+            </>
           )}
         </Space>
       </div>
@@ -835,14 +846,9 @@ export const QuestionnaireBuilderPage: React.FC = () => {
 
                 {rootQuestions.length === 0 ? (
                   <Card style={{ textAlign: 'center', padding: '40px 0', borderRadius: 8 }}>
-                    <Paragraph type="secondary">
+                    <Paragraph type="secondary" style={{ margin: 0 }}>
                       No questions added yet. Click <strong>Add Question</strong> to define your first audit item.
                     </Paragraph>
-                    {!isAssigned && (
-                      <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenAddQuestion}>
-                        Add Question
-                      </Button>
-                    )}
                   </Card>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

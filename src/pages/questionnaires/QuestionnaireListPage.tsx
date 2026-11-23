@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Table,
   Card,
@@ -11,6 +11,8 @@ import {
   Tooltip,
   Select,
   Input,
+  Modal,
+  Form,
 } from 'antd';
 import {
   PlusOutlined,
@@ -23,7 +25,7 @@ import {
   LockOutlined,
   SearchOutlined,
 } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { questionnairesApi } from '../../api/questionnaires';
 import { StatusBadge } from '../../components/common/StatusBadge';
@@ -35,14 +37,44 @@ const { Title, Text, Paragraph } = Typography;
 
 export const QuestionnaireListPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const [searchText, setSearchText] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [createForm] = Form.useForm();
+
+  useEffect(() => {
+    if (location.state?.openCreateModal) {
+      createForm.resetFields();
+      setIsCreateModalOpen(true);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, createForm]);
 
   const { data: questionnaires = [], isLoading } = useQuery({
     queryKey: ['questionnaires'],
     queryFn: () => questionnairesApi.getAll(),
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (values: { title: string; description?: string }) =>
+      questionnairesApi.create({
+        title: values.title.trim(),
+        description: values.description?.trim(),
+        status: 'DRAFT',
+      }),
+    onSuccess: (newQ) => {
+      message.success(`Draft questionnaire "${newQ.title}" created successfully.`);
+      queryClient.invalidateQueries({ queryKey: ['questionnaires'] });
+      setIsCreateModalOpen(false);
+      createForm.resetFields();
+      navigate(`/questionnaires/${newQ.id}/edit`);
+    },
+    onError: (err: any) => {
+      message.error(err?.response?.data?.message || err?.message || 'Failed to create questionnaire');
+    },
   });
 
   const deleteMutation = useMutation({
@@ -99,7 +131,10 @@ export const QuestionnaireListPage: React.FC = () => {
         <Button
           type="primary"
           icon={<PlusOutlined />}
-          onClick={() => navigate('/questionnaires/new')}
+          onClick={() => {
+            createForm.resetFields();
+            setIsCreateModalOpen(true);
+          }}
           style={{ height: 40 }}
           block={isMobile}
         >
@@ -145,7 +180,10 @@ export const QuestionnaireListPage: React.FC = () => {
                     : 'No questionnaires created yet. Start by authoring your first audit checklist.'
                 }
                 actionText="Create Questionnaire"
-                onAction={() => navigate('/questionnaires/new')}
+                onAction={() => {
+                  createForm.resetFields();
+                  setIsCreateModalOpen(true);
+                }}
               />
             ),
           }}
@@ -263,7 +301,9 @@ export const QuestionnaireListPage: React.FC = () => {
                         type="text"
                         icon={<BarChartOutlined style={{ color: '#722ed1' }} />}
                         onClick={() => navigate('/analytics', { state: { questionnaireId: record.id } })}
-                      />
+                      >
+                        Analytics
+                      </Button>
                     </Tooltip>
 
                     {/* Delete Action only for DRAFT */}
@@ -275,7 +315,9 @@ export const QuestionnaireListPage: React.FC = () => {
                         okText="Yes, Delete"
                         cancelText="Cancel"
                       >
-                        <Button type="text" danger icon={<DeleteOutlined />} />
+                        <Button type="text" danger icon={<DeleteOutlined />}>
+                          Delete
+                        </Button>
                       </Popconfirm>
                     )}
                   </Space>
@@ -285,6 +327,67 @@ export const QuestionnaireListPage: React.FC = () => {
           ]}
         />
       </Card>
+
+      {/* Create Questionnaire Modal */}
+      <Modal
+        title="Create Questionnaire"
+        open={isCreateModalOpen}
+        onCancel={() => {
+          if (!createMutation.isPending) {
+            setIsCreateModalOpen(false);
+            createForm.resetFields();
+          }
+        }}
+        footer={[
+          <Button
+            key="cancel"
+            onClick={() => {
+              setIsCreateModalOpen(false);
+              createForm.resetFields();
+            }}
+            disabled={createMutation.isPending}
+          >
+            Cancel
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            loading={createMutation.isPending}
+            onClick={() => createForm.submit()}
+          >
+            Create
+          </Button>,
+        ]}
+        width={isMobile ? 'calc(100vw - 24px)' : 540}
+        style={{ top: isMobile ? 16 : undefined }}
+        destroyOnClose
+      >
+        <Form
+          form={createForm}
+          layout="vertical"
+          onFinish={(values) => createMutation.mutate(values)}
+          style={{ marginTop: 16 }}
+        >
+          <Form.Item
+            name="title"
+            label="Questionnaire Title"
+            rules={[{ required: true, message: 'Please provide a unique title' }]}
+          >
+            <Input
+              size="large"
+              placeholder="e.g. ISO 9001 & Electrical Appliance Safety Audit (2026)"
+              style={{ fontWeight: 600 }}
+            />
+          </Form.Item>
+
+          <Form.Item name="description" label="Instructions & Purpose">
+            <Input.TextArea
+              rows={3}
+              placeholder="Detail the scope of this audit, standards referenced, and required documentation..."
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };
