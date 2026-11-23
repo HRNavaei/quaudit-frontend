@@ -67,8 +67,13 @@ export const ProductManagementPage: React.FC = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: Partial<Product> }) =>
-      productsApi.update(id, updates),
+    mutationFn: ({
+      id,
+      updates,
+    }: {
+      id: string;
+      updates: { name?: string; description?: string | null; category?: string | null };
+    }) => productsApi.update(id, updates),
     onSuccess: () => {
       message.success('Product updated successfully');
       queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -113,17 +118,23 @@ export const ProductManagementPage: React.FC = () => {
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      const payload = {
-        ...values,
-        supplierId: isSupplier && user?.supplier ? user.supplier.id : values.supplierId,
-      };
 
       if (editingProduct) {
         updateMutation.mutate({
           id: editingProduct.id,
-          updates: payload,
+          updates: {
+            name: values.name,
+            category: values.category,
+            description: values.description,
+          },
         });
       } else {
+        const payload = {
+          name: values.name,
+          category: values.category,
+          description: values.description,
+          supplierId: isSupplier && user?.supplier ? user.supplier.id : values.supplierId,
+        };
         createMutation.mutate(payload);
       }
     } catch {
@@ -294,13 +305,15 @@ export const ProductManagementPage: React.FC = () => {
           >
             <Select
               placeholder="Select category"
+              showSearch
               options={[
+                { value: 'IoT Hardware', label: 'IoT Hardware & Sensors' },
+                { value: 'Electronics', label: 'Control Boards & Components' },
                 { value: 'Refrigeration', label: 'Refrigeration & Cooling' },
                 { value: 'Laundry', label: 'Washing & Laundry' },
                 { value: 'Cooking', label: 'Stoves, Ovens & Cooking' },
                 { value: 'Heating', label: 'Water Heaters & Climate' },
                 { value: 'Small Appliance', label: 'Small Kitchen Appliances' },
-                { value: 'Electronics', label: 'Control Boards & Components' },
               ]}
             />
           </Form.Item>
