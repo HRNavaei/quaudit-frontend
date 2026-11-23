@@ -147,3 +147,34 @@ export const getEligibleFollowUpTargets = (
     return !cycle.hasCycle;
   });
 };
+
+/**
+ * Returns all question IDs in the follow-up chain starting from startQuestionId.
+ */
+export const getChainQuestionIds = (
+  startQuestionId: string | null | undefined,
+  allQuestions: Question[]
+): string[] => {
+  if (!startQuestionId) return [];
+  const ids: string[] = [];
+  const queue = [startQuestionId];
+  const visited = new Set<string>();
+
+  while (queue.length > 0) {
+    const currId = queue.shift()!;
+    if (visited.has(currId)) continue;
+    visited.add(currId);
+    ids.push(currId);
+
+    const currQ = allQuestions.find((q) => q.id === currId);
+    if (currQ && currQ.options) {
+      currQ.options.forEach((opt) => {
+        if (opt.followUpQuestionId) {
+          queue.push(opt.followUpQuestionId);
+        }
+      });
+    }
+  }
+
+  return ids;
+};

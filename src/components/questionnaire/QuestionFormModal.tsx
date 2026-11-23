@@ -22,6 +22,7 @@ interface QuestionFormModalProps {
   existingQuestions: Question[];
   onCancel: () => void;
   onSave: (question: Partial<Question>) => void;
+  title?: string;
 }
 
 export const QuestionFormModal: React.FC<QuestionFormModalProps> = ({
@@ -30,6 +31,7 @@ export const QuestionFormModal: React.FC<QuestionFormModalProps> = ({
   existingQuestions,
   onCancel,
   onSave,
+  title,
 }) => {
   const [form] = Form.useForm();
   const selectedType = Form.useWatch('type', form);
@@ -129,7 +131,7 @@ export const QuestionFormModal: React.FC<QuestionFormModalProps> = ({
 
   return (
     <Modal
-      title={question ? 'Edit Question' : 'Add Question'}
+      title={title || (question ? 'Edit Question' : 'Add Question')}
       open={visible}
       onCancel={onCancel}
       onOk={handleSubmit}
@@ -235,7 +237,21 @@ export const QuestionFormModal: React.FC<QuestionFormModalProps> = ({
                             type="text"
                             danger
                             icon={<DeleteOutlined />}
-                            onClick={() => remove(name)}
+                            onClick={() => {
+                              const currentOpt = form.getFieldValue(['options', name]);
+                              if (currentOpt?.followUpQuestionId) {
+                                Modal.confirm({
+                                  title: 'Delete Option with Follow-up Chain?',
+                                  content:
+                                    'This option has an attached follow-up chain. Deleting it will delete the entire chain of follow-up questions. Are you sure you want to proceed?',
+                                  okText: 'Delete Option & Chain',
+                                  okType: 'danger',
+                                  onOk: () => remove(name),
+                                });
+                              } else {
+                                remove(name);
+                              }
+                            }}
                             style={{ marginTop: 24 }}
                           />
                         )}

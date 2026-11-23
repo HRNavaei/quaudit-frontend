@@ -9,9 +9,10 @@ import {
   Tag,
   Divider,
   Tabs,
-  Popconfirm,
   message,
   Alert,
+  Tooltip,
+  Modal,
 } from 'antd';
 import {
   PlusOutlined,
@@ -33,7 +34,12 @@ import { Question, QuestionOption, Answer } from '../../types';
 import { QuestionFormModal } from '../../components/questionnaire/QuestionFormModal';
 import { ConditionalFlowPreview } from '../../components/questionnaire/ConditionalFlowPreview';
 import { DynamicQuestionRenderer } from '../../components/questionnaire/DynamicQuestionRenderer';
-import { getVisibleQuestions, getIncomingFollowUpTargets, detectCycle } from '../../utils/conditionalLogic';
+import {
+  getVisibleQuestions,
+  getIncomingFollowUpTargets,
+  detectCycle,
+  getChainQuestionIds,
+} from '../../utils/conditionalLogic';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 
 const { Title, Text, Paragraph } = Typography;
@@ -48,6 +54,14 @@ export const QuestionnaireBuilderPage: React.FC = () => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [activeModal, setActiveModal] = useState<boolean>(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [followUpContext, setFollowUpContext] = useState<{
+    parentQuestionId: string;
+    optionId: string;
+    optionLabel: string;
+  } | null>(null);
+
+  // Accordion state: records which option is expanded for a given questionId
+  const [expandedOptionByQuestion, setExpandedOptionByQuestion] = useState<Record<string, string | null>>({});
 
   // Simulator answers state
   const [simulatedAnswers, setSimulatedAnswers] = useState<Record<string, Partial<Answer>>>({});
@@ -235,31 +249,44 @@ export const QuestionnaireBuilderPage: React.FC = () => {
 
   const handleOpenAddQuestion = () => {
     if (isAssigned) return;
+    setFollowUpContext(null);
+    setEditingQuestion(null);
+    setActiveModal(true);
+  };
+
+  const handleOpenAddFollowUp = (
+    parentQuestionId: string,
+    optionId: string,
+    optionLabel: string
+  ) => {
+    if (isAssigned) return;
+    setFollowUpContext({ parentQuestionId, optionId, optionLabel });
     setEditingQuestion(null);
     setActiveModal(true);
   };
 
   const handleOpenEditQuestion = (q: Question) => {
     if (isAssigned) return;
+    setFollowUpContext(null);
     setEditingQuestion(q);
     setActiveModal(true);
   };
 
+  const handleToggleExpand = (questionId: string, optionId: string) => {
+    setExpandedOptionByQuestion((prev) => ({
+      ...prev,
+      [questionId]: prev[questionId] === optionId ? null : optionId,
+    }));
+  };
+
   const handleSaveQuestion = (qData: Partial<Question>) => {
     if (isAssigned) return;
-    if (editingQuestion) {
-      // Update existing question
-      setQuestions((prev) =>
-        prev.map((item) =>
-          item.id === editingQuestion.id
-            ? { ...item, ...qData, options: qData.options as QuestionOption[] }
-            : item
-        )
-      );
-    } else {
-      // Add new question
+
+    if (followUpContext) {
+      // 1. Adding a follow-up question directly connected to a specific option
+      const newQId = `ques-${Math.random().toString(36).substring(2, 9)}`;
       const newQuestion: Question = {
-        id: `ques-${Math.random().toString(36).substring(2, 9)}`,
+        id: newQId,
         text: qData.text || '',
         type: qData.type || 'TEXT',
         isRequired: qData.isRequired ?? true,
@@ -267,40 +294,171 @@ export const QuestionnaireBuilderPage: React.FC = () => {
         questionnaireId: id || 'temp',
         options: (qData.options || []) as QuestionOption[],
       };
-      setQuestions((prev) => [...prev, newQuestion]);
+
+      setQuestions((prev) => {
+        const updated = prev.map((q) => {
+          if (q.id === followUpContext.parentQuestionId) {
+            return {
+              ...q,
+              options: (q.options || []).map((opt) =>
+                opt.id === followUpContext.optionId
+                  ? { ...opt, followUpQuestionId: newQId }
+                  : opt
+              ),
+            };
+          }
+          return q;
+        });
+        return [...updated, newQuestion];
+      });
+
+      // Auto-expand this option so the user immediately sees the newly connected follow-up question
+      setExpandedOptionByQuestion((prev) => ({
+        ...prev,
+        [followUpContext.parentQuestionId]: followUpContext.optionId,
+      }));
+
+      setFollowUpContext(null);
+      setActiveModal(false);
+      message.success('Follow-up question created and linked successfully!');
+      return;
     }
+
+    if (editingQuestion) {
+      // 2. Update existing question
+      setQuestions((prev) =>
+        prev.map((item) =>
+          item.id === editingQuestion.id
+            ? { ...item, ...qData, options: qData.options as QuestionOption[] }
+            : item
+        )
+      );
+      setEditingQuestion(null);
+      setActiveModal(false);
+      message.success('Question updated successfully.');
+      return;
+    }
+
+    // 3. Add new top-level root question
+    const newQuestion: Question = {
+      id: `ques-${Math.random().toString(36).substring(2, 9)}`,
+      text: qData.text || '',
+      type: qData.type || 'TEXT',
+      isRequired: qData.isRequired ?? true,
+      order: questions.length + 1,
+      questionnaireId: id || 'temp',
+      options: (qData.options || []) as QuestionOption[],
+    };
+    setQuestions((prev) => [...prev, newQuestion]);
     setActiveModal(false);
+    message.success('Question added successfully.');
+  };
+
+  const handleDeleteFollowUpChain = (
+    parentQuestionId: string,
+    optionId: string,
+    followUpQuestionId: string
+  ) => {
+    if (isAssigned) return;
+    const chainIds = getChainQuestionIds(followUpQuestionId, questions);
+    Modal.confirm({
+      title: 'Delete Follow-up Chain?',
+      content: `This option has a chain of ${chainIds.length} follow-up question(s). Deleting it will permanently delete this question and its entire follow-up chain. Are you sure you want to proceed?`,
+      okText: 'Delete Follow-up Chain',
+      okType: 'danger',
+      onOk: () => {
+        const chainSet = new Set(chainIds);
+        setQuestions((prev) =>
+          prev
+            .filter((q) => !chainSet.has(q.id))
+            .map((q) => {
+              if (q.id === parentQuestionId) {
+                return {
+                  ...q,
+                  options: (q.options || []).map((opt) =>
+                    opt.id === optionId ? { ...opt, followUpQuestionId: null } : opt
+                  ),
+                };
+              }
+              return q;
+            })
+            .map((q, idx) => ({ ...q, order: idx + 1 }))
+        );
+        setExpandedOptionByQuestion((prev) => {
+          const next = { ...prev };
+          delete next[parentQuestionId];
+          return next;
+        });
+        message.success('Follow-up chain deleted.');
+      },
+    });
   };
 
   const handleDeleteQuestion = (questionId: string) => {
     if (isAssigned) return;
-    // Remove question and clear any options pointing to it
-    setQuestions((prev) =>
-      prev
-        .filter((q) => q.id !== questionId)
-        .map((q) => ({
-          ...q,
-          options: (q.options || []).map((opt) =>
-            opt.followUpQuestionId === questionId ? { ...opt, followUpQuestionId: null } : opt
-          ),
-        }))
-        .map((q, idx) => ({ ...q, order: idx + 1 }))
-    );
-  };
+    const chainIds = getChainQuestionIds(questionId, questions);
 
-  const handleMove = (index: number, direction: 'up' | 'down') => {
-    if (isAssigned) return;
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= questions.length) return;
-
-    const reordered = [...questions];
-    const [moved] = reordered.splice(index, 1);
-    reordered.splice(targetIndex, 0, moved);
-
-    setQuestions(reordered.map((q, idx) => ({ ...q, order: idx + 1 })));
+    if (chainIds.length > 1) {
+      Modal.confirm({
+        title: 'Delete Question & Follow-up Chain?',
+        content: `This question has ${chainIds.length - 1} nested follow-up question(s) in its chain. Deleting it will permanently delete this question and its entire follow-up chain. Are you sure you want to proceed?`,
+        okText: 'Delete Question & Chain',
+        okType: 'danger',
+        onOk: () => {
+          const chainSet = new Set(chainIds);
+          setQuestions((prev) =>
+            prev
+              .filter((q) => !chainSet.has(q.id))
+              .map((q) => ({
+                ...q,
+                options: (q.options || []).map((opt) =>
+                  opt.followUpQuestionId && chainSet.has(opt.followUpQuestionId)
+                    ? { ...opt, followUpQuestionId: null }
+                    : opt
+                ),
+              }))
+              .map((q, idx) => ({ ...q, order: idx + 1 }))
+          );
+          message.success('Question and follow-up chain deleted.');
+        },
+      });
+    } else {
+      setQuestions((prev) =>
+        prev
+          .filter((q) => q.id !== questionId)
+          .map((q) => ({
+            ...q,
+            options: (q.options || []).map((opt) =>
+              opt.followUpQuestionId === questionId ? { ...opt, followUpQuestionId: null } : opt
+            ),
+          }))
+          .map((q, idx) => ({ ...q, order: idx + 1 }))
+      );
+      message.success('Question deleted.');
+    }
   };
 
   const incomingTargets = getIncomingFollowUpTargets(questions);
+  const rootQuestions = questions.filter((q) => !incomingTargets.has(q.id));
+
+  const handleMoveRoot = (rootIndex: number, direction: 'up' | 'down') => {
+    if (isAssigned) return;
+    const targetRootIndex = direction === 'up' ? rootIndex - 1 : rootIndex + 1;
+    if (targetRootIndex < 0 || targetRootIndex >= rootQuestions.length) return;
+
+    const sourceRoot = rootQuestions[rootIndex];
+    const targetRoot = rootQuestions[targetRootIndex];
+
+    const sourceIdx = questions.findIndex((q) => q.id === sourceRoot.id);
+    const targetIdx = questions.findIndex((q) => q.id === targetRoot.id);
+    if (sourceIdx === -1 || targetIdx === -1) return;
+
+    const reordered = [...questions];
+    const [moved] = reordered.splice(sourceIdx, 1);
+    reordered.splice(targetIdx, 0, moved);
+
+    setQuestions(reordered.map((q, idx) => ({ ...q, order: idx + 1 })));
+  };
   const cycleInfo = detectCycle(questions);
   const visibleSimulatedQuestions = getVisibleQuestions(questions, simulatedAnswers);
 
@@ -309,6 +467,231 @@ export const QuestionnaireBuilderPage: React.FC = () => {
       ...prev,
       [questionId]: { ...prev[questionId], ...updates },
     }));
+  };
+
+  const renderQuestionCard = (
+    q: Question,
+    indexLabel: string,
+    level: number = 0,
+    rootIndex?: number
+  ) => {
+    const isRoot = level === 0;
+    const activeExpandedOptId = expandedOptionByQuestion[q.id];
+
+    return (
+      <Card
+        key={q.id}
+        style={{
+          borderRadius: 8,
+          border: isRoot ? '1px solid #e2e8f0' : '1px solid #bfdbfe',
+          borderLeft: isRoot ? '1px solid #e2e8f0' : '4px solid #1677ff',
+          background: isRoot ? '#ffffff' : level % 2 === 1 ? '#f8faff' : '#f0f7ff',
+          boxShadow: isRoot ? '0 1px 3px rgba(0,0,0,0.04)' : 'none',
+          marginBottom: 14,
+        }}
+        bodyStyle={{ padding: '16px 20px' }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            {/* Badges row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+              <Tag color={isRoot ? 'default' : 'blue'} style={{ fontWeight: 700 }}>
+                {indexLabel}
+              </Tag>
+              <Tag color="geekblue">{q.type}</Tag>
+              {q.isRequired ? (
+                <Tag color="red">Required</Tag>
+              ) : (
+                <Tag color="default">Optional</Tag>
+              )}
+              {!isRoot && (
+                <Tag color="blue" icon={<BranchesOutlined />}>
+                  Follow-up Question
+                </Tag>
+              )}
+            </div>
+
+            {/* Question text */}
+            <Text strong style={{ fontSize: 15, color: '#1e293b' }}>
+              {q.text}
+            </Text>
+
+            {/* Options breakdown */}
+            {(q.options || []).length > 0 && (
+              <div style={{ marginTop: 14 }}>
+                <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8, fontWeight: 600 }}>
+                  Choice Options & Follow-up Branching:
+                </Text>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {q.options?.map((opt) => {
+                    const hasFollowUp = !!opt.followUpQuestionId;
+                    const isExpanded = activeExpandedOptId === opt.id;
+                    const targetQ = hasFollowUp
+                      ? questions.find((item) => item.id === opt.followUpQuestionId)
+                      : null;
+
+                    return (
+                      <div key={opt.id}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '8px 12px',
+                            borderRadius: 6,
+                            background: isExpanded ? '#eff6ff' : '#f8fafc',
+                            border: isExpanded ? '1.5px solid #3b82f6' : '1px solid #e2e8f0',
+                            transition: 'all 0.2s ease',
+                            flexWrap: 'wrap',
+                            gap: 8,
+                          }}
+                        >
+                          {/* Option info */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span
+                              style={{
+                                fontWeight: isExpanded ? 700 : 500,
+                                color: isExpanded ? '#1d4ed8' : '#1e293b',
+                              }}
+                            >
+                              • {opt.label}
+                            </span>
+                            {hasFollowUp && (
+                              <Tag color={isExpanded ? 'blue' : 'default'} style={{ fontSize: 11, borderRadius: 10 }}>
+                                {targetQ ? `Reveals: ${targetQ.text.slice(0, 32)}${targetQ.text.length > 32 ? '...' : ''}` : 'Follow-up Connected'}
+                              </Tag>
+                            )}
+                          </div>
+
+                          {/* Action buttons */}
+                          {!isAssigned && (
+                            <Space size={6}>
+                              {!hasFollowUp ? (
+                                <Tooltip title={`Add follow-up question when respondent selects "${opt.label}"`}>
+                                  <Button
+                                    type="dashed"
+                                    size="small"
+                                    icon={<PlusOutlined />}
+                                    onClick={() => handleOpenAddFollowUp(q.id, opt.id, opt.label)}
+                                    style={{ fontSize: 12 }}
+                                  >
+                                    Add follow-up
+                                  </Button>
+                                </Tooltip>
+                              ) : (
+                                <>
+                                  <Button
+                                    size="small"
+                                    type={isExpanded ? 'primary' : 'default'}
+                                    onClick={() => handleToggleExpand(q.id, opt.id)}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 6,
+                                      fontWeight: isExpanded ? 600 : 400,
+                                      borderColor: isExpanded ? '#2563eb' : '#d9d9d9',
+                                    }}
+                                  >
+                                    <span>{isExpanded ? 'Hide Follow-up' : 'Show Follow-up'}</span>
+                                    <span
+                                      style={{
+                                        display: 'inline-block',
+                                        transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                                        transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        fontSize: 10,
+                                        fontWeight: 700,
+                                      }}
+                                    >
+                                      ▲
+                                    </span>
+                                  </Button>
+
+                                  <Tooltip title="Delete this follow-up chain">
+                                    <Button
+                                      type="text"
+                                      danger
+                                      size="small"
+                                      icon={<DeleteOutlined />}
+                                      onClick={() => handleDeleteFollowUpChain(q.id, opt.id, opt.followUpQuestionId!)}
+                                    />
+                                  </Tooltip>
+                                </>
+                              )}
+                            </Space>
+                          )}
+                        </div>
+
+                        {/* Nested follow-up question below option if expanded */}
+                        {hasFollowUp && isExpanded && targetQ && (
+                          <div
+                            style={{
+                              marginTop: 10,
+                              marginLeft: 12,
+                              paddingLeft: 12,
+                              borderLeft: '2px dashed #93c5fd',
+                              animation: 'fadeIn 0.2s ease',
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontSize: 12,
+                                color: '#1d4ed8',
+                                fontWeight: 600,
+                                marginBottom: 8,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6,
+                              }}
+                            >
+                              <BranchesOutlined /> Follow-up for Option "{opt.label}":
+                            </div>
+                            {renderQuestionCard(targetQ, `${indexLabel} ↳`, level + 1)}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Action buttons on card top-right */}
+          {!isAssigned && (
+            <Space size={4}>
+              {isRoot && rootIndex !== undefined && (
+                <>
+                  <Button
+                    size="small"
+                    icon={<ArrowUpOutlined />}
+                    disabled={rootIndex === 0}
+                    onClick={() => handleMoveRoot(rootIndex, 'up')}
+                  />
+                  <Button
+                    size="small"
+                    icon={<ArrowDownOutlined />}
+                    disabled={rootIndex === rootQuestions.length - 1}
+                    onClick={() => handleMoveRoot(rootIndex, 'down')}
+                  />
+                </>
+              )}
+              <Button
+                size="small"
+                icon={<EditOutlined />}
+                onClick={() => handleOpenEditQuestion(q)}
+              />
+              <Button
+                size="small"
+                danger
+                icon={<DeleteOutlined />}
+                onClick={() => handleDeleteQuestion(q.id)}
+              />
+            </Space>
+          )}
+        </div>
+      </Card>
+    );
   };
 
   return (
@@ -432,7 +815,7 @@ export const QuestionnaireBuilderPage: React.FC = () => {
                   )}
                 </div>
 
-                {questions.length === 0 ? (
+                {rootQuestions.length === 0 ? (
                   <Card style={{ textAlign: 'center', padding: '40px 0', borderRadius: 8 }}>
                     <Paragraph type="secondary">
                       No questions added yet. Click <strong>Add Question</strong> to define your first audit item.
@@ -445,103 +828,9 @@ export const QuestionnaireBuilderPage: React.FC = () => {
                   </Card>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    {questions.map((q, idx) => {
-                      const isConditionalTarget = incomingTargets.has(q.id);
-
-                      return (
-                        <Card
-                          key={q.id}
-                          style={{
-                            borderRadius: 8,
-                            border: isConditionalTarget ? '1px dashed #1677ff' : '1px solid #e2e8f0',
-                            background: isConditionalTarget ? '#f8faff' : '#ffffff',
-                          }}
-                          bodyStyle={{ padding: '16px 20px' }}
-                        >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
-                                <Tag color={isConditionalTarget ? 'blue' : 'default'} style={{ fontWeight: 700 }}>
-                                  #{idx + 1}
-                                </Tag>
-                                <Tag color="geekblue">{q.type}</Tag>
-                                {q.isRequired ? (
-                                  <Tag color="red">Required</Tag>
-                                ) : (
-                                  <Tag color="default">Optional</Tag>
-                                )}
-                                {isConditionalTarget && (
-                                  <Tag color="blue" icon={<BranchesOutlined />}>
-                                    Conditional (Follow-up)
-                                  </Tag>
-                                )}
-                              </div>
-
-                              <Text strong style={{ fontSize: 15, color: '#1e293b' }}>
-                                {q.text}
-                              </Text>
-
-                              {/* Options breakdown */}
-                              {(q.options || []).length > 0 && (
-                                <div style={{ marginTop: 12, paddingLeft: 12, borderLeft: '2px solid #e2e8f0' }}>
-                                  <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>
-                                    Options & Branching:
-                                  </Text>
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                    {q.options?.map((opt) => {
-                                      const targetQ = questions.find((item) => item.id === opt.followUpQuestionId);
-                                      return (
-                                        <div key={opt.id} style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                          <span>• {opt.label}</span>
-                                          {targetQ ? (
-                                            <Tag color="blue" icon={<BranchesOutlined />} style={{ fontSize: 11 }}>
-                                              Reveals: {targetQ.text.substring(0, 35)}...
-                                            </Tag>
-                                          ) : (
-                                            <Text type="secondary" style={{ fontSize: 11 }}>
-                                              (no follow-up)
-                                            </Text>
-                                          )}
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-
-                            {!isAssigned && (
-                              <Space size={4}>
-                                <Button
-                                  size="small"
-                                  icon={<ArrowUpOutlined />}
-                                  disabled={idx === 0}
-                                  onClick={() => handleMove(idx, 'up')}
-                                />
-                                <Button
-                                  size="small"
-                                  icon={<ArrowDownOutlined />}
-                                  disabled={idx === questions.length - 1}
-                                  onClick={() => handleMove(idx, 'down')}
-                                />
-                                <Button
-                                  size="small"
-                                  icon={<EditOutlined />}
-                                  onClick={() => handleOpenEditQuestion(q)}
-                                />
-                                <Popconfirm
-                                  title="Delete Question"
-                                  description="Are you sure you want to remove this question?"
-                                  onConfirm={() => handleDeleteQuestion(q.id)}
-                                >
-                                  <Button size="small" danger icon={<DeleteOutlined />} />
-                                </Popconfirm>
-                              </Space>
-                            )}
-                          </div>
-                        </Card>
-                      );
-                    })}
+                    {rootQuestions.map((q, idx) =>
+                      renderQuestionCard(q, `#${idx + 1}`, 0, idx)
+                    )}
                   </div>
                 )}
               </div>
@@ -601,7 +890,18 @@ export const QuestionnaireBuilderPage: React.FC = () => {
           visible={activeModal}
           question={editingQuestion}
           existingQuestions={questions}
-          onCancel={() => setActiveModal(false)}
+          title={
+            followUpContext
+              ? `Add Follow-up Question for "${followUpContext.optionLabel}"`
+              : editingQuestion
+              ? 'Edit Question'
+              : 'Add Question'
+          }
+          onCancel={() => {
+            setActiveModal(false);
+            setFollowUpContext(null);
+            setEditingQuestion(null);
+          }}
           onSave={handleSaveQuestion}
         />
       )}
