@@ -6,13 +6,12 @@ import {
   Select,
   Switch,
   Button,
-  Space,
   Divider,
   Typography,
 } from 'antd';
-import { PlusOutlined, DeleteOutlined, BranchesOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { Question, QuestionOption, QuestionType } from '../../types';
-import { getEligibleFollowUpTargets, getChainQuestionIds } from '../../utils/conditionalLogic';
+import { getChainQuestionIds } from '../../utils/conditionalLogic';
 import { useIsMobile } from '../../hooks/useIsMobile';
 
 const { Text } = Typography;
@@ -103,12 +102,6 @@ export const QuestionFormModal: React.FC<QuestionFormModalProps> = ({
     }
   };
 
-  // Find questions that can be safely targeted as follow-ups without creating cycles
-  const eligibleTargets = getEligibleFollowUpTargets(
-    question?.id || 'new-question',
-    existingQuestions
-  );
-
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
@@ -184,96 +177,72 @@ export const QuestionFormModal: React.FC<QuestionFormModalProps> = ({
         {(selectedType === 'YES_NO' || selectedType === 'SINGLE_CHOICE') && (
           <div>
             <Divider orientation="left" style={{ margin: '16px 0 12px' }}>
-              <Space>
-                <span>Choice Options & Follow-up Branching</span>
-                <BranchesOutlined style={{ color: '#1677ff' }} />
-              </Space>
+              <span>Choice Options</span>
             </Divider>
 
             <Form.List name="options">
               {(fields, { add, remove }) => (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {fields.map(({ key, name, ...restField }) => (
                     <div
                       key={key}
                       style={{
-                        padding: 12,
+                        padding: '10px 14px',
                         borderRadius: 6,
                         background: '#f9fafb',
                         border: '1px solid #e5e7eb',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 12,
                       }}
                     >
-                      <div
-                        style={{
-                          display: 'grid',
-                          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr auto',
-                          gap: 12,
-                          alignItems: isMobile ? 'stretch' : 'center',
-                        }}
+                      {/* Hidden fields to preserve option id and follow-up reference */}
+                      <Form.Item {...restField} name={[name, 'id']} hidden>
+                        <Input />
+                      </Form.Item>
+                      <Form.Item {...restField} name={[name, 'followUpQuestionId']} hidden>
+                        <Input />
+                      </Form.Item>
+
+                      <Form.Item
+                        {...restField}
+                        name={[name, 'label']}
+                        label="Option Label"
+                        rules={[{ required: true, message: 'Required' }]}
+                        style={{ margin: 0, flex: 1 }}
                       >
-                        <Form.Item
-                          {...restField}
-                          name={[name, 'label']}
-                          label="Option Label"
-                          rules={[{ required: true, message: 'Required' }]}
-                          style={{ margin: 0 }}
-                        >
-                          <Input placeholder="e.g. Yes" />
-                        </Form.Item>
+                        <Input placeholder="e.g. Option label" />
+                      </Form.Item>
 
-                        <Form.Item
-                          {...restField}
-                          name={[name, 'followUpQuestionId']}
-                          label={
-                            <Space size={4}>
-                              <BranchesOutlined style={{ color: '#1677ff' }} />
-                              <span>Reveal Question</span>
-                            </Space>
+                      <Button
+                        type="text"
+                        danger
+                        icon={<DeleteOutlined />}
+                        onClick={() => {
+                          const currentOpt = form.getFieldValue(['options', name]);
+                          if (currentOpt?.followUpQuestionId) {
+                            const chainIds = getChainQuestionIds(currentOpt.followUpQuestionId, existingQuestions);
+                            const count = chainIds.length;
+                            const title = count === 1 ? 'Delete Follow-up Question?' : 'Delete Follow-up Questions?';
+                            const content =
+                              count === 1
+                                ? 'This option has 1 follow-up question. Deleting it will permanently remove that follow-up question from the questionnaire. Are you sure you want to proceed?'
+                                : `This option has ${count} follow-up questions. Deleting it will permanently remove those ${count} follow-up questions from the questionnaire. Are you sure you want to proceed?`;
+                            const okText = count === 1 ? 'Delete Follow-up Question' : `Delete All ${count} Follow-up Questions`;
+
+                            Modal.confirm({
+                              title,
+                              content,
+                              okText,
+                              okType: 'danger',
+                              onOk: () => remove(name),
+                            });
+                          } else {
+                            remove(name);
                           }
-                          style={{ margin: 0 }}
-                        >
-                          <Select
-                            placeholder="None (no follow-up)"
-                            allowClear
-                            options={eligibleTargets.map((q) => ({
-                              value: q.id,
-                              label: `Q: ${q.text.substring(0, 45)}${q.text.length > 45 ? '...' : ''}`,
-                            }))}
-                          />
-                        </Form.Item>
-
-                        {selectedType === 'SINGLE_CHOICE' && fields.length > 2 && (
-                          <Button
-                            type="text"
-                            danger
-                            icon={<DeleteOutlined />}
-                            onClick={() => {
-                              const currentOpt = form.getFieldValue(['options', name]);
-                              if (currentOpt?.followUpQuestionId) {
-                                const chainIds = getChainQuestionIds(currentOpt.followUpQuestionId, existingQuestions);
-                                const count = chainIds.length;
-                                const title = count === 1 ? 'Delete Follow-up Question?' : 'Delete Follow-up Questions?';
-                                const content =
-                                  count === 1
-                                    ? 'This option has 1 follow-up question. Deleting it will permanently remove that follow-up question from the questionnaire. Are you sure you want to proceed?'
-                                    : `This option has ${count} follow-up questions. Deleting it will permanently remove those ${count} follow-up questions from the questionnaire. Are you sure you want to proceed?`;
-                                const okText = count === 1 ? 'Delete Follow-up Question' : `Delete All ${count} Follow-up Questions`;
-
-                                Modal.confirm({
-                                  title,
-                                  content,
-                                  okText,
-                                  okType: 'danger',
-                                  onOk: () => remove(name),
-                                });
-                              } else {
-                                remove(name);
-                              }
-                            }}
-                            style={{ marginTop: 24 }}
-                          />
-                        )}
-                      </div>
+                        }}
+                        style={{ marginTop: 22 }}
+                      />
                     </div>
                   ))}
 

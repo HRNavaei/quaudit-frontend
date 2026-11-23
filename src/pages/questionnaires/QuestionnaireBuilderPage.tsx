@@ -326,13 +326,40 @@ export const QuestionnaireBuilderPage: React.FC = () => {
 
     if (editingQuestion) {
       // 2. Update existing question
-      setQuestions((prev) =>
-        prev.map((item) =>
+      const originalOptions = editingQuestion.options || [];
+      const newOptionIds = new Set((qData.options || []).map((o) => o.id));
+
+      // Identify all removed options
+      const removedOptions = originalOptions.filter((orig) => !newOptionIds.has(orig.id));
+
+      // Collect all follow-up question chains attached to the removed options
+      const questionsToDelete = new Set<string>();
+      for (const remOpt of removedOptions) {
+        if (remOpt.followUpQuestionId) {
+          const chainIds = getChainQuestionIds(remOpt.followUpQuestionId, questions);
+          chainIds.forEach((cId) => questionsToDelete.add(cId));
+        }
+      }
+
+      setQuestions((prev) => {
+        // Remove the chained questions of deleted options
+        const filtered = prev.filter((item) => !questionsToDelete.has(item.id));
+        // Update the edited question
+        return filtered.map((item) =>
           item.id === editingQuestion.id
             ? { ...item, ...qData, options: qData.options as QuestionOption[] }
             : item
-        )
-      );
+        );
+      });
+
+      // Also clean up accordion state
+      setExpandedOptionByQuestion((prev) => {
+        const next = { ...prev };
+        delete next[editingQuestion.id];
+        questionsToDelete.forEach((qId) => delete next[qId]);
+        return next;
+      });
+
       setEditingQuestion(null);
       setActiveModal(false);
       message.success('Question updated successfully.');
