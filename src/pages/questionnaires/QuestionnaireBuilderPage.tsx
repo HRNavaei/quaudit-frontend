@@ -35,7 +35,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { questionnairesApi } from '../../api/questionnaires';
 import { Question, QuestionOption, Answer } from '../../types';
 import { QuestionFormModal } from '../../components/questionnaire/QuestionFormModal';
-import { ConditionalFlowPreview } from '../../components/questionnaire/ConditionalFlowPreview';
 import { DynamicQuestionRenderer } from '../../components/questionnaire/DynamicQuestionRenderer';
 import {
   getVisibleQuestions,
@@ -685,9 +684,24 @@ export const QuestionnaireBuilderPage: React.FC = () => {
       {/* Top Bar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <Space wrap>
-          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/questionnaires')}>
-            Back
-          </Button>
+          {isAssigned ? (
+            <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/questionnaires')}>
+              Back
+            </Button>
+          ) : (
+            <Popconfirm
+              title="Discard Questionnaire Changes?"
+              description="Are you sure you want to discard changes and return to questionnaires?"
+              onConfirm={() => navigate('/questionnaires')}
+              okText="Discard"
+              cancelText="Cancel"
+              okButtonProps={{ danger: true }}
+            >
+              <Button icon={<ArrowLeftOutlined />}>
+                Back
+              </Button>
+            </Popconfirm>
+          )}
           <Title level={isMobile ? 4 : 3} style={{ margin: 0, color: '#0f172a' }}>
             {isAssigned
               ? 'View Questionnaire'
@@ -714,29 +728,15 @@ export const QuestionnaireBuilderPage: React.FC = () => {
               Clone Questionnaire
             </Button>
           ) : (
-            <>
-              <Popconfirm
-                title="Discard Questionnaire Changes?"
-                description="Are you sure you want to discard changes and return to questionnaires?"
-                onConfirm={() => navigate('/questionnaires')}
-                okText="Discard"
-                cancelText="Cancel"
-                okButtonProps={{ danger: true }}
-              >
-                <Button danger>
-                  Discard
-                </Button>
-              </Popconfirm>
-              <Button
-                type="primary"
-                icon={<SaveOutlined />}
-                onClick={() => saveMutation.mutate()}
-                loading={saveMutation.isPending}
-                disabled={cycleInfo.hasCycle}
-              >
-                Save Questionnaire
-              </Button>
-            </>
+            <Button
+              type="primary"
+              icon={<SaveOutlined />}
+              onClick={() => saveMutation.mutate()}
+              loading={saveMutation.isPending}
+              disabled={cycleInfo.hasCycle}
+            >
+              Save Questionnaire
+            </Button>
           )}
         </Space>
       </div>
@@ -797,52 +797,92 @@ export const QuestionnaireBuilderPage: React.FC = () => {
             key: 'builder',
             label: (
               <span>
-                <BranchesOutlined /> Question Configuration ({questions.length})
+                <BranchesOutlined /> Questionnaire Builder
               </span>
             ),
             children: (
               <div>
-                <ConditionalFlowPreview questions={questions} />
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', margin: '24px 0 16px', flexWrap: 'wrap', gap: 12 }}>
+                {/* Stats Bar */}
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: 24,
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    padding: '10px 16px',
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 8,
+                    marginBottom: 14,
+                    fontSize: 13,
+                    color: '#475569',
+                  }}
+                >
                   <div>
-                    <Title level={4} style={{ margin: 0 }}>
-                      Questions Configuration
-                    </Title>
-                    <Paragraph type="secondary" style={{ margin: '6px 0 0', fontSize: 13, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
-                      Click the{' '}
-                      <Button
-                        size="small"
-                        icon={<PlusOutlined style={{ fontSize: 11 }} />}
-                        style={{
-                          pointerEvents: 'none',
-                          width: 22,
-                          height: 22,
-                          padding: 0,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'default',
-                        }}
-                      />{' '}
-                      next to a question option to add a follow-up question, or click the{' '}
-                      <Button
-                        size="small"
-                        icon={<DownOutlined style={{ fontSize: 11 }} />}
-                        style={{
-                          pointerEvents: 'none',
-                          width: 22,
-                          height: 22,
-                          padding: 0,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'default',
-                        }}
-                      />{' '}
-                      to view its existing follow-up questions.
-                    </Paragraph>
+                    <strong style={{ color: '#0f172a' }}>Root Questions (Always Visible):</strong>{' '}
+                    {rootQuestions.length}
                   </div>
+                  <div>
+                    <strong style={{ color: '#0f172a' }}>Follow-up Questions (Hidden Until Triggered):</strong>{' '}
+                    {incomingTargets.size}
+                  </div>
+                </div>
+
+                {/* Helper note & Add Question action */}
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: 16,
+                    flexWrap: 'wrap',
+                    gap: 12,
+                  }}
+                >
+                  <Paragraph
+                    type="secondary"
+                    style={{
+                      margin: 0,
+                      fontSize: 13,
+                      display: 'flex',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: 6,
+                    }}
+                  >
+                    Click the{' '}
+                    <Button
+                      size="small"
+                      icon={<PlusOutlined style={{ fontSize: 11 }} />}
+                      style={{
+                        pointerEvents: 'none',
+                        width: 22,
+                        height: 22,
+                        padding: 0,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'default',
+                      }}
+                    />{' '}
+                    next to a question option to add a follow-up question, or click the{' '}
+                    <Button
+                      size="small"
+                      icon={<DownOutlined style={{ fontSize: 11 }} />}
+                      style={{
+                        pointerEvents: 'none',
+                        width: 22,
+                        height: 22,
+                        padding: 0,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'default',
+                      }}
+                    />{' '}
+                    to view its existing follow-up questions.
+                  </Paragraph>
+
                   {!isAssigned && (
                     <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenAddQuestion}>
                       Add Question
@@ -857,7 +897,7 @@ export const QuestionnaireBuilderPage: React.FC = () => {
                     </Paragraph>
                   </Card>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
                     {rootQuestions.map((q, idx) =>
                       renderQuestionCard(q, `#${idx + 1}`, 0, idx)
                     )}
@@ -870,7 +910,7 @@ export const QuestionnaireBuilderPage: React.FC = () => {
             key: 'preview',
             label: (
               <span>
-                <EyeOutlined /> Live Interactive Simulator
+                <EyeOutlined /> Preview
               </span>
             ),
             children: (
