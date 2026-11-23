@@ -27,6 +27,8 @@ import {
   ArrowLeftOutlined,
   CopyOutlined,
   LockOutlined,
+  DownOutlined,
+  UpOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -353,56 +355,6 @@ export const QuestionnaireBuilderPage: React.FC = () => {
     message.success('Question added successfully.');
   };
 
-  const handleDeleteFollowUpChain = (
-    parentQuestionId: string,
-    optionId: string,
-    followUpQuestionId: string
-  ) => {
-    if (isAssigned) return;
-    const chainIds = getChainQuestionIds(followUpQuestionId, questions);
-    const count = chainIds.length;
-    const title = count === 1 ? 'Delete Follow-up Question?' : 'Delete Follow-up Questions?';
-    const content =
-      count === 1
-        ? 'This option has 1 follow-up question. Deleting it will permanently remove that follow-up question from the questionnaire. Are you sure you want to proceed?'
-        : `This option has ${count} follow-up questions. Deleting it will permanently remove those ${count} follow-up questions from the questionnaire. Are you sure you want to proceed?`;
-    const okText = count === 1 ? 'Delete Follow-up Question' : `Delete All ${count} Follow-up Questions`;
-
-    Modal.confirm({
-      title,
-      content,
-      okText,
-      okType: 'danger',
-      onOk: () => {
-        const chainSet = new Set(chainIds);
-        setQuestions((prev) =>
-          prev
-            .filter((q) => !chainSet.has(q.id))
-            .map((q) => {
-              if (q.id === parentQuestionId) {
-                return {
-                  ...q,
-                  options: (q.options || []).map((opt) =>
-                    opt.id === optionId ? { ...opt, followUpQuestionId: null } : opt
-                  ),
-                };
-              }
-              return q;
-            })
-            .map((q, idx) => ({ ...q, order: idx + 1 }))
-        );
-        setExpandedOptionByQuestion((prev) => {
-          const next = { ...prev };
-          delete next[parentQuestionId];
-          return next;
-        });
-        message.success(
-          count === 1 ? 'Follow-up question deleted.' : `${count} follow-up questions deleted.`
-        );
-      },
-    });
-  };
-
   const handleDeleteQuestion = (questionId: string) => {
     if (isAssigned) return;
     const chainIds = getChainQuestionIds(questionId, questions);
@@ -484,6 +436,33 @@ export const QuestionnaireBuilderPage: React.FC = () => {
     }));
   };
 
+  const FOLLOW_UP_THEMES = [
+    {
+      bg: '#f0f7ff',
+      border: '1px solid #bfdbfe',
+      borderLeft: '4px solid #1677ff',
+      tagColor: 'blue',
+    },
+    {
+      bg: '#faf5ff',
+      border: '1px solid #e9d5ff',
+      borderLeft: '4px solid #9333ea',
+      tagColor: 'purple',
+    },
+    {
+      bg: '#f0fdfa',
+      border: '1px solid #99f6e4',
+      borderLeft: '4px solid #0d9488',
+      tagColor: 'cyan',
+    },
+    {
+      bg: '#fffbeb',
+      border: '1px solid #fde68a',
+      borderLeft: '4px solid #d97706',
+      tagColor: 'gold',
+    },
+  ];
+
   const renderQuestionCard = (
     q: Question,
     indexLabel: string,
@@ -491,221 +470,213 @@ export const QuestionnaireBuilderPage: React.FC = () => {
     rootIndex?: number
   ) => {
     const isRoot = level === 0;
+    const theme = isRoot ? null : FOLLOW_UP_THEMES[(level - 1) % FOLLOW_UP_THEMES.length];
     const activeExpandedOptId = expandedOptionByQuestion[q.id];
 
+    const activeOpt = (q.options || []).find((opt) => opt.id === activeExpandedOptId);
+    const targetQ = activeOpt && activeOpt.followUpQuestionId
+      ? questions.find((item) => item.id === activeOpt.followUpQuestionId)
+      : null;
+
     return (
-      <Card
-        key={q.id}
-        style={{
-          borderRadius: 8,
-          border: isRoot ? '1px solid #e2e8f0' : '1px solid #bfdbfe',
-          borderLeft: isRoot ? '1px solid #e2e8f0' : '4px solid #1677ff',
-          background: isRoot ? '#ffffff' : level % 2 === 1 ? '#f8faff' : '#f0f7ff',
-          boxShadow: isRoot ? '0 1px 3px rgba(0,0,0,0.04)' : 'none',
-          marginBottom: 14,
-        }}
-        styles={{ body: { padding: isMobile ? '12px 10px' : '16px 20px' } }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            {/* Badges row */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
-              <Tag color={isRoot ? 'default' : 'blue'} style={{ fontWeight: 700 }}>
-                {indexLabel}
-              </Tag>
-              <Tag color="geekblue">{q.type}</Tag>
-              {q.isRequired ? (
-                <Tag color="red">Required</Tag>
-              ) : (
-                <Tag color="default">Optional</Tag>
-              )}
-              {!isRoot && (
-                <Tag color="blue" icon={<BranchesOutlined />}>
-                  Follow-up Question
+      <React.Fragment key={q.id}>
+        <Card
+          style={{
+            borderRadius: 8,
+            border: isRoot ? '1px solid #e2e8f0' : theme!.border,
+            borderLeft: isRoot ? '1px solid #e2e8f0' : theme!.borderLeft,
+            background: isRoot ? '#ffffff' : theme!.bg,
+            boxShadow: isRoot ? '0 1px 3px rgba(0,0,0,0.04)' : 'none',
+            marginBottom: 14,
+          }}
+          styles={{ body: { padding: isMobile ? '12px 10px' : '16px 20px' } }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {/* Badges row */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                <Tag color={isRoot ? 'default' : theme!.tagColor} style={{ fontWeight: 700 }}>
+                  {indexLabel}
                 </Tag>
-              )}
-            </div>
+                <Tag color="geekblue">{q.type}</Tag>
+                {q.isRequired ? (
+                  <Tag color="red">Required</Tag>
+                ) : (
+                  <Tag color="default">Optional</Tag>
+                )}
+                {!isRoot && (
+                  <Tag color={theme!.tagColor} icon={<BranchesOutlined />}>
+                    Follow-up Question
+                  </Tag>
+                )}
+              </div>
 
-            {/* Question text */}
-            <Text strong style={{ fontSize: 15, color: '#1e293b' }}>
-              {q.text}
-            </Text>
+              {/* Question text */}
+              <Text strong style={{ fontSize: 15, color: '#1e293b' }}>
+                {q.text}
+              </Text>
 
-            {/* Options breakdown */}
-            {(q.options || []).length > 0 && (
-              <div style={{ marginTop: 14 }}>
-                <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8, fontWeight: 600 }}>
-                  Choice Options & Follow-up Branching:
-                </Text>
+              {/* Options breakdown */}
+              {(q.options || []).length > 0 && (
+                <div style={{ marginTop: 14 }}>
+                  <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8, fontWeight: 600 }}>
+                    Choice Options:
+                  </Text>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {q.options?.map((opt) => {
-                    const hasFollowUp = !!opt.followUpQuestionId;
-                    const isExpanded = activeExpandedOptId === opt.id;
-                    const targetQ = hasFollowUp
-                      ? questions.find((item) => item.id === opt.followUpQuestionId)
-                      : null;
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: 8,
+                    }}
+                  >
+                    {q.options?.map((opt) => {
+                      const hasFollowUp = !!opt.followUpQuestionId;
+                      const isExpanded = activeExpandedOptId === opt.id;
 
-                    return (
-                      <div key={opt.id}>
+                      return (
                         <div
+                          key={opt.id}
                           style={{
+                            flex: isMobile ? '0 0 calc(50% - 4px)' : '0 0 calc((100% - 48px) / 7)',
+                            maxWidth: isMobile ? 'calc(50% - 4px)' : 'calc((100% - 48px) / 7)',
+                            boxSizing: 'border-box',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            padding: '8px 12px',
+                            padding: '4px 6px 4px 8px',
                             borderRadius: 6,
                             background: isExpanded ? '#eff6ff' : '#f8fafc',
-                            border: isExpanded ? '1.5px solid #3b82f6' : '1px solid #e2e8f0',
+                            border: isExpanded ? '1.5px solid #2563eb' : '1px solid #cbd5e1',
+                            boxShadow: isExpanded ? '0 0 0 2px rgba(37, 99, 235, 0.15)' : 'none',
+                            height: 36,
                             transition: 'all 0.2s ease',
-                            flexWrap: 'wrap',
-                            gap: 8,
                           }}
                         >
-                          {/* Option info */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <Tooltip
+                            title={opt.label}
+                            trigger={['hover', 'click']}
+                            placement="top"
+                          >
                             <span
                               style={{
-                                fontWeight: isExpanded ? 700 : 500,
-                                color: isExpanded ? '#1d4ed8' : '#1e293b',
+                                flex: 1,
+                                minWidth: 0,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                fontSize: 13,
+                                fontWeight: isExpanded ? 600 : 500,
+                                color: isExpanded ? '#1d4ed8' : '#334155',
+                                cursor: 'pointer',
+                                userSelect: 'none',
                               }}
                             >
-                              • {opt.label}
+                              {opt.label}
                             </span>
-                            {hasFollowUp && (
-                              <Tag color={isExpanded ? 'blue' : 'default'} style={{ fontSize: 11, borderRadius: 10 }}>
-                                {targetQ ? `Reveals: ${targetQ.text.slice(0, 32)}${targetQ.text.length > 32 ? '...' : ''}` : 'Follow-up Connected'}
-                              </Tag>
-                            )}
-                          </div>
+                          </Tooltip>
 
-                          {/* Action buttons */}
                           {!isAssigned && (
-                            <Space size={6}>
-                              {!hasFollowUp ? (
-                                <Tooltip title={`Add follow-up question when respondent selects "${opt.label}"`}>
-                                  <Button
-                                    type="dashed"
-                                    size="small"
-                                    icon={<PlusOutlined />}
-                                    onClick={() => handleOpenAddFollowUp(q.id, opt.id, opt.label)}
-                                    style={{ fontSize: 12 }}
-                                  >
-                                    Add follow-up
-                                  </Button>
-                                </Tooltip>
-                              ) : (
-                                <>
-                                  <Button
-                                    size="small"
-                                    type={isExpanded ? 'primary' : 'default'}
-                                    onClick={() => handleToggleExpand(q.id, opt.id)}
-                                    style={{
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: 6,
-                                      fontWeight: isExpanded ? 600 : 400,
-                                      borderColor: isExpanded ? '#2563eb' : '#d9d9d9',
-                                    }}
-                                  >
-                                    <span>{isExpanded ? 'Hide Follow-up' : 'Show Follow-up'}</span>
-                                    <span
-                                      style={{
-                                        display: 'inline-block',
-                                        transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                                        transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                        fontSize: 10,
-                                        fontWeight: 700,
-                                      }}
-                                    >
-                                      ▲
-                                    </span>
-                                  </Button>
-
-                                  <Tooltip title="Delete this follow-up chain">
-                                    <Button
-                                      type="text"
-                                      danger
-                                      size="small"
-                                      icon={<DeleteOutlined />}
-                                      onClick={() => handleDeleteFollowUpChain(q.id, opt.id, opt.followUpQuestionId!)}
-                                    />
-                                  </Tooltip>
-                                </>
-                              )}
-                            </Space>
+                            !hasFollowUp ? (
+                              <Tooltip title={`Add follow-up question for "${opt.label}"`}>
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  icon={<PlusOutlined style={{ fontSize: 12, color: '#64748b' }} />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOpenAddFollowUp(q.id, opt.id, opt.label);
+                                  }}
+                                  style={{
+                                    width: 22,
+                                    height: 22,
+                                    padding: 0,
+                                    marginLeft: 4,
+                                    flexShrink: 0,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    borderRadius: 4,
+                                  }}
+                                />
+                              </Tooltip>
+                            ) : (
+                              <Tooltip title={isExpanded ? 'Collapse follow-up question' : 'View follow-up question'}>
+                                <Button
+                                  type={isExpanded ? 'primary' : 'text'}
+                                  size="small"
+                                  icon={
+                                    isExpanded ? (
+                                      <UpOutlined style={{ fontSize: 11 }} />
+                                    ) : (
+                                      <DownOutlined style={{ fontSize: 11, color: '#2563eb' }} />
+                                    )
+                                  }
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleExpand(q.id, opt.id);
+                                  }}
+                                  style={{
+                                    width: 22,
+                                    height: 22,
+                                    padding: 0,
+                                    marginLeft: 4,
+                                    flexShrink: 0,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    borderRadius: 4,
+                                  }}
+                                />
+                              </Tooltip>
+                            )
                           )}
                         </div>
-
-                        {/* Nested follow-up question below option if expanded */}
-                        {hasFollowUp && isExpanded && targetQ && (
-                          <div
-                            style={{
-                              marginTop: 10,
-                              marginLeft: isMobile ? 4 : 12,
-                              paddingLeft: isMobile ? 6 : 12,
-                              borderLeft: '2px dashed #93c5fd',
-                              animation: 'fadeIn 0.2s ease',
-                            }}
-                          >
-                            <div
-                              style={{
-                                fontSize: 12,
-                                color: '#1d4ed8',
-                                fontWeight: 600,
-                                marginBottom: 8,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 6,
-                              }}
-                            >
-                              <BranchesOutlined /> Follow-up for Option "{opt.label}":
-                            </div>
-                            {renderQuestionCard(targetQ, `${indexLabel} ↳`, level + 1)}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
+            </div>
+
+            {/* Action buttons on card top-right */}
+            {!isAssigned && (
+              <Space size={4}>
+                {isRoot && rootIndex !== undefined && (
+                  <>
+                    <Button
+                      size="small"
+                      icon={<ArrowUpOutlined />}
+                      disabled={rootIndex === 0}
+                      onClick={() => handleMoveRoot(rootIndex, 'up')}
+                    />
+                    <Button
+                      size="small"
+                      icon={<ArrowDownOutlined />}
+                      disabled={rootIndex === rootQuestions.length - 1}
+                      onClick={() => handleMoveRoot(rootIndex, 'down')}
+                    />
+                  </>
+                )}
+                <Button
+                  size="small"
+                  icon={<EditOutlined />}
+                  onClick={() => handleOpenEditQuestion(q)}
+                />
+                <Button
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={() => handleDeleteQuestion(q.id)}
+                />
+              </Space>
             )}
           </div>
+        </Card>
 
-          {/* Action buttons on card top-right */}
-          {!isAssigned && (
-            <Space size={4}>
-              {isRoot && rootIndex !== undefined && (
-                <>
-                  <Button
-                    size="small"
-                    icon={<ArrowUpOutlined />}
-                    disabled={rootIndex === 0}
-                    onClick={() => handleMoveRoot(rootIndex, 'up')}
-                  />
-                  <Button
-                    size="small"
-                    icon={<ArrowDownOutlined />}
-                    disabled={rootIndex === rootQuestions.length - 1}
-                    onClick={() => handleMoveRoot(rootIndex, 'down')}
-                  />
-                </>
-              )}
-              <Button
-                size="small"
-                icon={<EditOutlined />}
-                onClick={() => handleOpenEditQuestion(q)}
-              />
-              <Button
-                size="small"
-                danger
-                icon={<DeleteOutlined />}
-                onClick={() => handleDeleteQuestion(q.id)}
-              />
-            </Space>
-          )}
-        </div>
-      </Card>
+        {/* Follow-up question right below parent question with no indent */}
+        {targetQ && renderQuestionCard(targetQ, `${indexLabel} ↳`, level + 1)}
+      </React.Fragment>
     );
   };
 
@@ -833,10 +804,45 @@ export const QuestionnaireBuilderPage: React.FC = () => {
               <div>
                 <ConditionalFlowPreview questions={questions} />
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '24px 0 16px' }}>
-                  <Title level={4} style={{ margin: 0 }}>
-                    Questions Configuration
-                  </Title>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', margin: '24px 0 16px', flexWrap: 'wrap', gap: 12 }}>
+                  <div>
+                    <Title level={4} style={{ margin: 0 }}>
+                      Questions Configuration
+                    </Title>
+                    <Paragraph type="secondary" style={{ margin: '6px 0 0', fontSize: 13, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+                      Click the{' '}
+                      <Button
+                        size="small"
+                        icon={<PlusOutlined style={{ fontSize: 11 }} />}
+                        style={{
+                          pointerEvents: 'none',
+                          width: 22,
+                          height: 22,
+                          padding: 0,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'default',
+                        }}
+                      />{' '}
+                      next to a question option to add a follow-up question, or click the{' '}
+                      <Button
+                        size="small"
+                        icon={<DownOutlined style={{ fontSize: 11 }} />}
+                        style={{
+                          pointerEvents: 'none',
+                          width: 22,
+                          height: 22,
+                          padding: 0,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'default',
+                        }}
+                      />{' '}
+                      to view its existing follow-up questions.
+                    </Paragraph>
+                  </div>
                   {!isAssigned && (
                     <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenAddQuestion}>
                       Add Question
