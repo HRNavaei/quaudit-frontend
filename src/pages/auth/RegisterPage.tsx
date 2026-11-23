@@ -169,18 +169,18 @@ export const RegisterPage: React.FC = () => {
 
             <Row gutter={16}>
               <Col xs={24} sm={12}>
-                <Form.Item name="phone" label="Contact Phone (Optional)">
+                <Form.Item name="phone" label="Contact Phone">
                   <Input prefix={<PhoneOutlined style={{ color: '#9ca3af' }} />} placeholder="+1-555-0199" />
                 </Form.Item>
               </Col>
               <Col xs={24} sm={12}>
-                <Form.Item name="address" label="Facility Address (Optional)">
+                <Form.Item name="address" label="Facility Address">
                   <Input prefix={<EnvironmentOutlined style={{ color: '#9ca3af' }} />} placeholder="123 Industrial Way, Sector 4" />
                 </Form.Item>
               </Col>
             </Row>
 
-            <Form.Item name="description" label="Company Description / Scope (Optional)">
+            <Form.Item name="description" label="Company Description / Scope">
               <TextArea
                 rows={2}
                 placeholder="Manufacturer of precision hardware and industrial appliance components"
