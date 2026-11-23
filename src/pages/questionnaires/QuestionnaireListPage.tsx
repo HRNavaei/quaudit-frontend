@@ -29,12 +29,14 @@ import { questionnairesApi } from '../../api/questionnaires';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { EmptyState } from '../../components/common/EmptyState';
 import { Questionnaire, QuestionnaireStatus } from '../../types';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 const { Title, Text, Paragraph } = Typography;
 
 export const QuestionnaireListPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const [searchText, setSearchText] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
@@ -99,6 +101,7 @@ export const QuestionnaireListPage: React.FC = () => {
           icon={<PlusOutlined />}
           onClick={() => navigate('/questionnaires/new')}
           style={{ height: 40 }}
+          block={isMobile}
         >
           Create Questionnaire
         </Button>
@@ -111,14 +114,14 @@ export const QuestionnaireListPage: React.FC = () => {
             prefix={<SearchOutlined style={{ color: '#9ca3af' }} />}
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            style={{ width: 340 }}
+            style={{ flex: isMobile ? '1 1 100%' : '1 1 300px', minWidth: 200 }}
             allowClear
           />
 
           <Select
             value={statusFilter}
             onChange={setStatusFilter}
-            style={{ width: 180 }}
+            style={{ width: isMobile ? '100%' : 180 }}
             options={[
               { value: 'ALL', label: 'All Statuses' },
               { value: 'DRAFT', label: 'Drafts Only' },
@@ -131,6 +134,7 @@ export const QuestionnaireListPage: React.FC = () => {
           dataSource={filteredQuestionnaires}
           rowKey="id"
           loading={isLoading}
+          scroll={{ x: 'max-content' }}
           locale={{
             emptyText: (
               <EmptyState

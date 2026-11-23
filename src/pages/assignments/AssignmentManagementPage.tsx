@@ -31,10 +31,12 @@ import { productsApi } from '../../api/products';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { EmptyState } from '../../components/common/EmptyState';
 import { QuestionnaireAssignment } from '../../types';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 const { Title, Text } = Typography;
 
 export const AssignmentManagementPage: React.FC = () => {
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
@@ -159,6 +161,7 @@ export const AssignmentManagementPage: React.FC = () => {
           icon={<PlusOutlined />}
           onClick={handleOpenAssignModal}
           style={{ height: 40 }}
+          block={isMobile}
         >
           Assign Questionnaire
         </Button>
@@ -172,7 +175,7 @@ export const AssignmentManagementPage: React.FC = () => {
             prefix={<SearchOutlined style={{ color: '#9ca3af' }} />}
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            style={{ width: 340 }}
+            style={{ flex: isMobile ? '1 1 100%' : '1 1 260px', minWidth: 200 }}
             allowClear
           />
 
@@ -183,7 +186,7 @@ export const AssignmentManagementPage: React.FC = () => {
             }
             value={selectedSupplierFilter}
             onChange={setSelectedSupplierFilter}
-            style={{ width: 220 }}
+            style={{ width: isMobile ? '100%' : 220 }}
             options={[
               { value: 'ALL', label: 'All Suppliers' },
               ...suppliers.map((s) => ({ value: s.id, label: s.companyName })),
@@ -193,7 +196,7 @@ export const AssignmentManagementPage: React.FC = () => {
           <Select
             value={selectedStatusFilter}
             onChange={setSelectedStatusFilter}
-            style={{ width: 180 }}
+            style={{ width: isMobile ? '100%' : 180 }}
             options={[
               { value: 'ALL', label: 'All Statuses' },
               { value: 'PENDING', label: 'Pending' },
@@ -207,6 +210,7 @@ export const AssignmentManagementPage: React.FC = () => {
           dataSource={filteredAssignments}
           rowKey="id"
           loading={isLoading}
+          scroll={{ x: 'max-content' }}
           locale={{
             emptyText: (
               <EmptyState
@@ -341,6 +345,8 @@ export const AssignmentManagementPage: React.FC = () => {
         onCancel={() => setModalVisible(false)}
         onOk={handleCreateAssignment}
         confirmLoading={createAssignmentMutation.isPending}
+        width={isMobile ? 'calc(100vw - 24px)' : 520}
+        style={{ top: isMobile ? 16 : undefined }}
         destroyOnClose
       >
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>

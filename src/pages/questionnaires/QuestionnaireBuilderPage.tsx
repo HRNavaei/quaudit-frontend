@@ -41,10 +41,12 @@ import {
   getChainQuestionIds,
 } from '../../utils/conditionalLogic';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 const { Title, Text, Paragraph } = Typography;
 
 export const QuestionnaireBuilderPage: React.FC = () => {
+  const isMobile = useIsMobile();
   const { id } = useParams<{ id: string }>();
   const isEditing = !!id && id !== 'new';
   const navigate = useNavigate();
@@ -505,10 +507,10 @@ export const QuestionnaireBuilderPage: React.FC = () => {
           boxShadow: isRoot ? '0 1px 3px rgba(0,0,0,0.04)' : 'none',
           marginBottom: 14,
         }}
-        bodyStyle={{ padding: '16px 20px' }}
+        styles={{ body: { padding: isMobile ? '12px 10px' : '16px 20px' } }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-          <div style={{ flex: 1 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             {/* Badges row */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
               <Tag color={isRoot ? 'default' : 'blue'} style={{ fontWeight: 700 }}>
@@ -643,8 +645,8 @@ export const QuestionnaireBuilderPage: React.FC = () => {
                           <div
                             style={{
                               marginTop: 10,
-                              marginLeft: 12,
-                              paddingLeft: 12,
+                              marginLeft: isMobile ? 4 : 12,
+                              paddingLeft: isMobile ? 6 : 12,
                               borderLeft: '2px dashed #93c5fd',
                               animation: 'fadeIn 0.2s ease',
                             }}
@@ -714,13 +716,13 @@ export const QuestionnaireBuilderPage: React.FC = () => {
     <div style={{ maxWidth: 1100, margin: '0 auto' }}>
       {/* Top Bar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-        <Space>
+        <Space wrap>
           <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/questionnaires')}>
             Back
           </Button>
-          <Title level={3} style={{ margin: 0, color: '#0f172a' }}>
+          <Title level={isMobile ? 4 : 3} style={{ margin: 0, color: '#0f172a' }}>
             {isAssigned
-              ? 'View Questionnaire (Assigned)'
+              ? 'View Questionnaire'
               : isEditing
               ? 'Edit Draft Questionnaire'
               : 'Create Questionnaire'}
@@ -732,7 +734,7 @@ export const QuestionnaireBuilderPage: React.FC = () => {
           )}
         </Space>
 
-        <Space>
+        <Space wrap>
           {isAssigned ? (
             <Button
               type="primary"

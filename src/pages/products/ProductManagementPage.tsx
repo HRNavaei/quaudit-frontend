@@ -28,10 +28,12 @@ import { suppliersApi } from '../../api/suppliers';
 import { useAuth } from '../../context/AuthContext';
 import { EmptyState } from '../../components/common/EmptyState';
 import { Product } from '../../types';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 const { Title, Text, Paragraph } = Typography;
 
 export const ProductManagementPage: React.FC = () => {
+  const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const location = useLocation();
   const { user } = useAuth();
@@ -167,7 +169,7 @@ export const ProductManagementPage: React.FC = () => {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <Title level={3} style={{ margin: 0, color: '#0f172a' }}>
             {isSupplier ? 'My Registered Products' : 'Product Management'}
@@ -184,6 +186,7 @@ export const ProductManagementPage: React.FC = () => {
           icon={<PlusOutlined />}
           onClick={() => handleOpenModal()}
           style={{ height: 40 }}
+          block={isMobile}
         >
           Add Product
         </Button>
@@ -196,7 +199,7 @@ export const ProductManagementPage: React.FC = () => {
             prefix={<SearchOutlined style={{ color: '#9ca3af' }} />}
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            style={{ width: 320 }}
+            style={{ flex: isMobile ? '1 1 100%' : '1 1 260px', minWidth: 200 }}
             allowClear
           />
 
@@ -208,7 +211,7 @@ export const ProductManagementPage: React.FC = () => {
               }
               value={selectedSupplierId}
               onChange={setSelectedSupplierId}
-              style={{ width: 240 }}
+              style={{ width: isMobile ? '100%' : 240 }}
               options={[
                 { value: 'ALL', label: 'All Suppliers' },
                 ...suppliers.map((s) => ({ value: s.id, label: s.companyName })),
@@ -221,6 +224,7 @@ export const ProductManagementPage: React.FC = () => {
           dataSource={filteredProducts}
           rowKey="id"
           loading={isLoading}
+          scroll={{ x: 'max-content' }}
           locale={{
             emptyText: (
               <EmptyState
@@ -320,6 +324,8 @@ export const ProductManagementPage: React.FC = () => {
         onCancel={() => setModalVisible(false)}
         onOk={handleSubmit}
         confirmLoading={createMutation.isPending || updateMutation.isPending}
+        width={isMobile ? 'calc(100vw - 24px)' : 520}
+        style={{ top: isMobile ? 16 : undefined }}
         destroyOnClose
       >
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>

@@ -30,10 +30,12 @@ import { getVisibleQuestions, getIncomingFollowUpTargets } from '../../utils/con
 import { Answer, Question, AnswerItemDto, AiAssessmentResponse } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 const { Title, Text, Paragraph } = Typography;
 
 export const QuestionnaireCompletionPage: React.FC = () => {
+  const isMobile = useIsMobile();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -193,15 +195,25 @@ export const QuestionnaireCompletionPage: React.FC = () => {
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', paddingBottom: 60 }}>
       {/* Header bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 16,
+          flexWrap: 'wrap',
+          gap: 10,
+        }}
+      >
         <Button
           icon={<ArrowLeftOutlined />}
           onClick={() => navigate(isSupplier ? '/my-assignments' : '/assignments')}
+          block={isMobile}
         >
           {isSupplier ? 'Back to My Audits' : 'Back to Assignments'}
         </Button>
 
-        <Space>
+        <Space wrap style={{ width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'stretch' : 'flex-end' }}>
           {!isSupplier && isSubmitted && (
             <Button
               type="primary"
@@ -209,6 +221,7 @@ export const QuestionnaireCompletionPage: React.FC = () => {
               loading={assessmentMutation.isPending}
               disabled={assessmentMutation.isPending}
               onClick={() => assessmentMutation.mutate(id!)}
+              block={isMobile}
               style={{
                 background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
                 borderColor: '#6366f1',
@@ -228,6 +241,7 @@ export const QuestionnaireCompletionPage: React.FC = () => {
                 icon={<SaveOutlined />}
                 onClick={() => saveMutation.mutate(false)}
                 loading={saveMutation.isPending}
+                block={isMobile}
               >
                 Save Progress
               </Button>
@@ -236,6 +250,7 @@ export const QuestionnaireCompletionPage: React.FC = () => {
                 icon={<SendOutlined />}
                 onClick={handleValidateAndSubmit}
                 loading={saveMutation.isPending}
+                block={isMobile}
               >
                 Submit Audit Response
               </Button>
@@ -334,13 +349,13 @@ export const QuestionnaireCompletionPage: React.FC = () => {
           marginBottom: 20,
           boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
         }}
-        bodyStyle={{ padding: '24px 28px' }}
+        styles={{ body: { padding: isMobile ? '16px 14px' : '24px 28px' } }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
           <Tag color="cyan">Quality & Safety Audit</Tag>
         </div>
 
-        <Title level={3} style={{ margin: '4px 0 12px', color: '#0f172a' }}>
+        <Title level={isMobile ? 4 : 3} style={{ margin: '4px 0 12px', color: '#0f172a' }}>
           {q?.title}
         </Title>
 
@@ -350,13 +365,22 @@ export const QuestionnaireCompletionPage: React.FC = () => {
           </Paragraph>
         )}
 
-        <Descriptions column={{ xs: 1, sm: 2 }} size="small" style={{ marginTop: 12 }}>
+        <Descriptions
+          column={1}
+          size="small"
+          layout={isMobile ? 'vertical' : 'horizontal'}
+          style={{ marginTop: 12 }}
+        >
           <Descriptions.Item label={<Space><ShopOutlined /> Supplier Facility</Space>}>
-            <strong>{assignment.supplier?.companyName}</strong>
+            <Text strong style={{ color: '#0f172a', wordBreak: 'break-word' }}>
+              {assignment.supplier?.companyName}
+            </Text>
           </Descriptions.Item>
 
           <Descriptions.Item label={<Space><AppstoreOutlined /> Audited Product Line</Space>}>
-            <strong>{assignment.product?.name || 'Facility-wide General Audit'}</strong>
+            <Text strong style={{ color: '#0f172a', wordBreak: 'break-word' }}>
+              {assignment.product?.name || 'Facility-wide General Audit'}
+            </Text>
           </Descriptions.Item>
         </Descriptions>
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layout, Menu } from 'antd';
+import { Layout, Menu, Drawer, Button } from 'antd';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   DashboardOutlined,
@@ -13,6 +13,7 @@ import {
   IdcardOutlined,
   AuditOutlined,
   ClockCircleOutlined,
+  CloseOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
@@ -23,9 +24,18 @@ const { Sider } = Layout;
 interface SidebarProps {
   collapsed: boolean;
   onCollapse: (collapsed: boolean) => void;
+  isMobile?: boolean;
+  mobileOpen?: boolean;
+  onCloseMobile?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  collapsed,
+  onCollapse,
+  isMobile = false,
+  mobileOpen = false,
+  onCloseMobile,
+}) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -153,6 +163,90 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
     return '/dashboard';
   };
 
+  const menuNode = (
+    <Menu
+      mode="inline"
+      selectedKeys={[getSelectedKey()]}
+      style={{ borderRight: 0, marginTop: 8 }}
+      items={visibleItems.map((item) => ({
+        key: item.key,
+        icon: item.icon,
+        label: item.label,
+        onClick: () => {
+          navigate(item.key);
+          if (isMobile && onCloseMobile) {
+            onCloseMobile();
+          }
+        },
+      }))}
+    />
+  );
+
+  if (isMobile) {
+    return (
+      <Drawer
+        open={mobileOpen}
+        onClose={onCloseMobile}
+        placement="left"
+        width={270}
+        styles={{
+          body: { padding: 0, display: 'flex', flexDirection: 'column' },
+          header: { display: 'none' },
+        }}
+        closable={false}
+      >
+        {/* Brand Logo & Close button */}
+        <div
+          style={{
+            height: 64,
+            padding: '0 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderBottom: '1px solid #f0f0f0',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                background: 'linear-gradient(135deg, #1677ff 0%, #0958d9 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fff',
+                fontWeight: 800,
+                fontSize: 16,
+                flexShrink: 0,
+              }}
+            >
+              Q
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: '#0f172a', lineHeight: 1.2 }}>
+                QuAudit
+              </div>
+              <div style={{ fontSize: 11, color: '#64748b' }}>Supplier Compliance</div>
+            </div>
+          </div>
+          <Button
+            type="text"
+            icon={<CloseOutlined style={{ fontSize: 16, color: '#64748b' }} />}
+            onClick={onCloseMobile}
+            style={{ width: 36, height: 36 }}
+            aria-label="Close Navigation"
+          />
+        </div>
+
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          {menuNode}
+        </div>
+      </Drawer>
+    );
+  }
+
   return (
     <Sider
       collapsible
@@ -204,17 +298,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
         )}
       </div>
 
-      <Menu
-        mode="inline"
-        selectedKeys={[getSelectedKey()]}
-        style={{ borderRight: 0, marginTop: 8 }}
-        items={visibleItems.map((item) => ({
-          key: item.key,
-          icon: item.icon,
-          label: item.label,
-          onClick: () => navigate(item.key),
-        }))}
-      />
+      {menuNode}
     </Sider>
   );
 };

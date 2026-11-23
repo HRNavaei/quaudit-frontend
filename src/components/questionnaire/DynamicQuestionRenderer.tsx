@@ -63,11 +63,11 @@ export const DynamicQuestionRenderer: React.FC<DynamicQuestionRendererProps> = (
         background: isFollowUp ? '#f8faff' : '#ffffff',
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
       }}
-      bodyStyle={{ padding: '20px 24px' }}
+      styles={{ body: { padding: '16px 14px' } }}
     >
       <div style={{ marginBottom: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', flex: 1, minWidth: 200 }}>
             <span
               style={{
                 display: 'inline-flex',
@@ -202,7 +202,7 @@ export const DynamicQuestionRenderer: React.FC<DynamicQuestionRendererProps> = (
               </div>
             ) : (
               <InputNumber
-                style={{ width: 220 }}
+                style={{ width: '100%', maxWidth: 240 }}
                 placeholder="Enter numerical value"
                 value={answer?.numberValue ?? null}
                 onChange={handleNumberChange}

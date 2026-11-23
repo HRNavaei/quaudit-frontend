@@ -33,10 +33,12 @@ import { useNavigate } from 'react-router-dom';
 import { suppliersApi } from '../../api/suppliers';
 import { EmptyState } from '../../components/common/EmptyState';
 import { Supplier } from '../../types';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 const { Title, Text, Paragraph } = Typography;
 
 export const SupplierManagementPage: React.FC = () => {
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchText, setSearchText] = useState<string>('');
@@ -143,11 +145,12 @@ export const SupplierManagementPage: React.FC = () => {
           </Text>
         </div>
 
-        <Space>
+        <Space style={{ width: isMobile ? '100%' : 'auto' }}>
           <Button
             type="primary"
             icon={<ClockCircleOutlined />}
             onClick={() => navigate('/suppliers/pending')}
+            block={isMobile}
             style={{
               height: 40,
               background: pendingSuppliers.length > 0 ? '#f59e0b' : '#1677ff',
@@ -166,7 +169,7 @@ export const SupplierManagementPage: React.FC = () => {
             prefix={<SearchOutlined style={{ color: '#9ca3af' }} />}
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            style={{ width: 340 }}
+            style={{ width: isMobile ? '100%' : 340 }}
             allowClear
           />
         </div>
@@ -175,6 +178,7 @@ export const SupplierManagementPage: React.FC = () => {
           dataSource={filteredSuppliers}
           rowKey="id"
           loading={isLoading}
+          scroll={{ x: 'max-content' }}
           columns={[
             {
               title: 'Company Name',
@@ -295,7 +299,7 @@ export const SupplierManagementPage: React.FC = () => {
       <Drawer
         title={viewSupplier?.companyName || 'Supplier Profile'}
         placement="right"
-        width={500}
+        width={isMobile ? '100%' : 500}
         onClose={() => setViewSupplier(null)}
         open={!!viewSupplier}
         extra={
@@ -377,6 +381,8 @@ export const SupplierManagementPage: React.FC = () => {
         onCancel={() => setModalVisible(false)}
         onOk={handleSubmit}
         confirmLoading={updateMutation.isPending}
+        width={isMobile ? 'calc(100vw - 24px)' : 520}
+        style={{ top: isMobile ? 16 : undefined }}
         destroyOnClose
       >
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>

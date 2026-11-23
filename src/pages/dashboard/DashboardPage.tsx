@@ -20,10 +20,12 @@ import { assignmentsApi } from '../../api/assignments';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { EmptyState } from '../../components/common/EmptyState';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 const { Title, Text, Paragraph } = Typography;
 
 export const DashboardPage: React.FC = () => {
+  const isMobile = useIsMobile();
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -81,9 +83,9 @@ export const DashboardPage: React.FC = () => {
       <div
         style={{
           background: '#fff',
-          padding: '24px 28px',
+          padding: isMobile ? '16px 14px' : '24px 28px',
           borderRadius: 10,
-          marginBottom: 24,
+          marginBottom: isMobile ? 16 : 24,
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
           display: 'flex',
           justifyContent: 'space-between',
@@ -93,7 +95,7 @@ export const DashboardPage: React.FC = () => {
         }}
       >
         <div>
-          <Title level={3} style={{ margin: 0, color: '#0f172a' }}>
+          <Title level={isMobile ? 4 : 3} style={{ margin: 0, color: '#0f172a' }}>
             Welcome back, {user?.firstName} {user?.lastName}!
           </Title>
           <Paragraph type="secondary" style={{ margin: '4px 0 0', fontSize: 14 }}>
@@ -102,20 +104,20 @@ export const DashboardPage: React.FC = () => {
           </Paragraph>
         </div>
 
-        <Space>
+        <Space wrap style={{ width: isMobile ? '100%' : 'auto' }}>
           {role !== 'SUPPLIER' && (
             <>
-              <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/questionnaires/new')}>
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/questionnaires/new')} block={isMobile}>
                 Create Questionnaire
               </Button>
-              <Button icon={<AuditOutlined />} onClick={() => navigate('/assignments')}>
+              <Button icon={<AuditOutlined />} onClick={() => navigate('/assignments')} block={isMobile}>
                 Assign Audit
               </Button>
             </>
           )}
 
           {role === 'SUPPLIER' && (
-            <Button type="primary" icon={<AuditOutlined />} onClick={() => navigate('/my-assignments')}>
+            <Button type="primary" icon={<AuditOutlined />} onClick={() => navigate('/my-assignments')} block={isMobile}>
               Go to My Audits
             </Button>
           )}
@@ -246,6 +248,7 @@ export const DashboardPage: React.FC = () => {
               rowKey="id"
               pagination={false}
               size="middle"
+              scroll={{ x: 'max-content' }}
               locale={{
                 emptyText: (
                   <EmptyState

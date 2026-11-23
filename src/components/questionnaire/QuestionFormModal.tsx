@@ -13,6 +13,7 @@ import {
 import { PlusOutlined, DeleteOutlined, BranchesOutlined } from '@ant-design/icons';
 import { Question, QuestionOption, QuestionType } from '../../types';
 import { getEligibleFollowUpTargets, getChainQuestionIds } from '../../utils/conditionalLogic';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 const { Text } = Typography;
 
@@ -33,6 +34,7 @@ export const QuestionFormModal: React.FC<QuestionFormModalProps> = ({
   onSave,
   title,
 }) => {
+  const isMobile = useIsMobile();
   const [form] = Form.useForm();
   const selectedType = Form.useWatch('type', form);
 
@@ -135,7 +137,8 @@ export const QuestionFormModal: React.FC<QuestionFormModalProps> = ({
       open={visible}
       onCancel={onCancel}
       onOk={handleSubmit}
-      width={680}
+      width={isMobile ? 'calc(100vw - 20px)' : 680}
+      style={{ top: isMobile ? 16 : undefined }}
       destroyOnClose
       okText={question ? 'Update Question' : 'Add Question'}
     >
@@ -151,7 +154,7 @@ export const QuestionFormModal: React.FC<QuestionFormModalProps> = ({
           />
         </Form.Item>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
           <Form.Item
             name="type"
             label="Question Type"
@@ -200,7 +203,14 @@ export const QuestionFormModal: React.FC<QuestionFormModalProps> = ({
                         border: '1px solid #e5e7eb',
                       }}
                     >
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 12, alignItems: 'center' }}>
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr auto',
+                          gap: 12,
+                          alignItems: isMobile ? 'stretch' : 'center',
+                        }}
+                      >
                         <Form.Item
                           {...restField}
                           name={[name, 'label']}

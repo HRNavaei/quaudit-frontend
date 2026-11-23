@@ -11,6 +11,7 @@ import {
 import {
   MenuUnfoldOutlined,
   MenuFoldOutlined,
+  MenuOutlined,
   BellOutlined,
   UserOutlined,
   LogoutOutlined,
@@ -25,9 +26,16 @@ const { Header: AntHeader } = Layout;
 interface HeaderProps {
   collapsed: boolean;
   onToggleCollapse: () => void;
+  isMobile?: boolean;
+  onOpenMobileMenu?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) => {
+export const Header: React.FC<HeaderProps> = ({
+  collapsed,
+  onToggleCollapse,
+  isMobile = false,
+  onOpenMobileMenu,
+}) => {
   const { user, logout } = useAuth();
   const { unreadCount } = useNotifications();
   const navigate = useNavigate();
@@ -90,7 +98,7 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) =
   return (
     <AntHeader
       style={{
-        padding: '0 24px',
+        padding: isMobile ? '0 12px' : '0 24px',
         background: '#fff',
         display: 'flex',
         alignItems: 'center',
@@ -100,26 +108,55 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) =
         top: 0,
         zIndex: 9,
         height: 64,
+        width: '100%',
+        maxWidth: '100vw',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 12, minWidth: 0 }}>
         <Button
           type="text"
-          icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-          onClick={onToggleCollapse}
-          style={{ fontSize: 16, width: 40, height: 40 }}
+          icon={isMobile ? <MenuOutlined /> : collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+          onClick={isMobile ? onOpenMobileMenu : onToggleCollapse}
+          style={{ fontSize: 18, width: 40, height: 40 }}
+          aria-label="Navigation Menu"
         />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <RoleBadge role={user.role} />
-          {user.role === 'SUPPLIER' && user.supplier && (
-            <span style={{ fontSize: 13, color: '#4b5563', fontWeight: 500 }}>
-              {user.supplier.companyName}
+        {isMobile ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, fontSize: 16, color: '#0f172a' }}>
+            <span
+              style={{
+                width: 24,
+                height: 24,
+                borderRadius: 6,
+                background: 'linear-gradient(135deg, #1677ff 0%, #0958d9 100%)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fff',
+                fontWeight: 800,
+                fontSize: 13,
+              }}
+            >
+              Q
             </span>
-          )}
-        </div>
+            <span style={{ whiteSpace: 'nowrap' }}>QuAudit</span>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <RoleBadge role={user.role} />
+            {user.role === 'SUPPLIER' && user.supplier && (
+              <span style={{ fontSize: 13, color: '#4b5563', fontWeight: 500 }}>
+                {user.supplier.companyName}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 16, flexShrink: 0 }}>
+        {isMobile && (
+          <RoleBadge role={user.role} />
+        )}
+
         {/* Notifications */}
         <Tooltip title="Notifications">
           <Badge count={unreadCount} overflowCount={99} size="small">
@@ -127,7 +164,7 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) =
               type="text"
               icon={<BellOutlined style={{ fontSize: 18 }} />}
               onClick={() => navigate('/notifications')}
-              style={{ width: 40, height: 40 }}
+              style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             />
           </Badge>
         </Tooltip>
@@ -138,9 +175,9 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) =
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 8,
+              gap: 6,
               cursor: 'pointer',
-              padding: '4px 8px',
+              padding: '4px',
               borderRadius: 6,
               transition: 'background 0.2s',
             }}
@@ -148,17 +185,24 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) =
             <Avatar
               style={{
                 backgroundColor: getAvatarBg(),
+                fontWeight: 600,
+                fontSize: 13,
+                width: 32,
+                height: 32,
+                lineHeight: '32px',
               }}
               icon={<UserOutlined />}
             >
               {user.firstName ? user.firstName[0] : 'U'}
             </Avatar>
-            <div style={{ textAlign: 'left', lineHeight: 1.2 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#1f2937' }}>
-                {user.firstName}
+            {!isMobile && (
+              <div style={{ textAlign: 'left', lineHeight: 1.2 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#1f2937' }}>
+                  {user.firstName}
+                </div>
+                <div style={{ fontSize: 11, color: '#9ca3af' }}>{user.role}</div>
               </div>
-              <div style={{ fontSize: 11, color: '#9ca3af' }}>{user.role}</div>
-            </div>
+            )}
           </div>
         </Dropdown>
       </div>

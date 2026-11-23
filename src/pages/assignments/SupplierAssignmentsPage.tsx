@@ -15,10 +15,12 @@ import { useAuth } from '../../context/AuthContext';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { EmptyState } from '../../components/common/EmptyState';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 const { Title, Text, Paragraph } = Typography;
 
 export const SupplierAssignmentsPage: React.FC = () => {
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { user } = useAuth();
   const supplierId = user?.supplier?.id;
@@ -114,11 +116,11 @@ export const SupplierAssignmentsPage: React.FC = () => {
                   boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                   border: isPending ? '1px solid #ffe58f' : isInProgress ? '1px solid #91caff' : '1px solid #e2e8f0',
                 }}
-                bodyStyle={{ padding: '20px 24px' }}
+                styles={{ body: { padding: isMobile ? '16px 14px' : '20px 24px' } }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
-                  <div style={{ flex: 1, minWidth: 280 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                  <div style={{ flex: 1, minWidth: isMobile ? '100%' : 220 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
                       <StatusBadge status={assignment.status} />
                       {assignment.product ? (
                         <Tag color="geekblue" icon={<AppstoreOutlined />}>
@@ -139,26 +141,27 @@ export const SupplierAssignmentsPage: React.FC = () => {
                       </Paragraph>
                     )}
 
-                    <Space size={16} style={{ fontSize: 12, color: '#64748b' }}>
+                    <Space size={16} wrap style={{ fontSize: 12, color: '#64748b' }}>
                       <span>
                         <CalendarOutlined style={{ marginRight: 4 }} />
-                        Assigned on: {new Date(assignment.assignedAt).toLocaleDateString()}
+                        Assigned: {new Date(assignment.assignedAt).toLocaleDateString()}
                       </span>
                       {assignment.submittedAt && (
                         <span style={{ color: '#52c41a' }}>
                           <CheckCircleOutlined style={{ marginRight: 4 }} />
-                          Submitted on: {new Date(assignment.submittedAt).toLocaleDateString()}
+                          Submitted: {new Date(assignment.submittedAt).toLocaleDateString()}
                         </span>
                       )}
                     </Space>
                   </div>
 
-                  <div style={{ alignSelf: 'center' }}>
+                  <div style={{ width: isMobile ? '100%' : 'auto', alignSelf: 'center' }}>
                     <Button
                       type={isSubmitted ? 'default' : 'primary'}
                       size="large"
+                      block={isMobile}
                       onClick={() => navigate(`/assignments/${assignment.id}/complete`)}
-                      style={{ minWidth: 160 }}
+                      style={{ minWidth: isMobile ? '100%' : 160 }}
                     >
                       {isPending && 'Start Audit'}
                       {isInProgress && 'Continue Audit'}

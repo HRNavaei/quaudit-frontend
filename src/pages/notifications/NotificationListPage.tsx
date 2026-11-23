@@ -38,7 +38,7 @@ export const NotificationListPage: React.FC = () => {
 
   return (
     <div style={{ maxWidth: 850, margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <Title level={3} style={{ margin: 0, color: '#0f172a' }}>
             Notifications & Compliance Alerts

@@ -22,6 +22,7 @@ import { useLocation } from 'react-router-dom';
 import { questionnairesApi } from '../../api/questionnaires';
 import { analyticsApi } from '../../api/analytics';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
+import { useIsMobile } from '../../hooks/useIsMobile';
 import {
   ResponsiveContainer,
   PieChart,
@@ -41,6 +42,7 @@ const { Title, Text, Paragraph } = Typography;
 const STATUS_COLORS = ['#faad14', '#1677ff', '#52c41a'];
 
 export const ResponseAnalysisPage: React.FC = () => {
+  const isMobile = useIsMobile();
   const location = useLocation();
 
   const { data: questionnaires = [], isLoading: loadingQ } = useQuery({
@@ -82,7 +84,7 @@ export const ResponseAnalysisPage: React.FC = () => {
     <div style={{ maxWidth: 1100, margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Title level={3} style={{ margin: 0, color: '#0f172a' }}>
+          <Title level={isMobile ? 4 : 3} style={{ margin: 0, color: '#0f172a' }}>
             Response Analysis & Quality Intelligence
           </Title>
           <Text type="secondary">
@@ -93,7 +95,7 @@ export const ResponseAnalysisPage: React.FC = () => {
         <Select
           value={selectedQId}
           onChange={setSelectedQId}
-          style={{ minWidth: 320 }}
+          style={{ width: isMobile ? '100%' : 'auto', minWidth: isMobile ? '100%' : 300 }}
           placeholder="Select questionnaire to analyze"
           options={questionnaires.map((q) => ({
             value: q.id,

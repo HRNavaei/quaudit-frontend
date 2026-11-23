@@ -101,6 +101,7 @@ export const PendingSuppliersPage: React.FC = () => {
           dataSource={pendingSuppliers}
           rowKey="id"
           loading={isLoading}
+          scroll={{ x: 'max-content' }}
           locale={{
             emptyText: (
               <Empty

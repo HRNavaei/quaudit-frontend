@@ -36,10 +36,12 @@ import { DynamicQuestionRenderer } from '../../components/questionnaire/DynamicQ
 import { AiAssessmentCard } from '../../components/ai/AiAssessmentCard';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { getIncomingFollowUpTargets } from '../../utils/conditionalLogic';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 const { Title, Text } = Typography;
 
 export const ResponseManagementPage: React.FC = () => {
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
@@ -152,7 +154,7 @@ export const ResponseManagementPage: React.FC = () => {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <Title level={3} style={{ margin: 0, color: '#0f172a' }}>
             Response Management
@@ -168,6 +170,7 @@ export const ResponseManagementPage: React.FC = () => {
             icon={<BarChartOutlined />}
             onClick={() => navigate('/analytics')}
             style={{ height: 40 }}
+            block={isMobile}
           >
             View Aggregate Analytics
           </Button>
@@ -181,7 +184,7 @@ export const ResponseManagementPage: React.FC = () => {
             prefix={<SearchOutlined style={{ color: '#9ca3af' }} />}
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            style={{ width: 340 }}
+            style={{ flex: isMobile ? '1 1 100%' : '1 1 240px', minWidth: 200 }}
             allowClear
           />
 
@@ -192,7 +195,7 @@ export const ResponseManagementPage: React.FC = () => {
             }
             value={selectedQuestionnaireFilter}
             onChange={setSelectedQuestionnaireFilter}
-            style={{ width: 280 }}
+            style={{ width: isMobile ? '100%' : 260 }}
             options={[
               { value: 'ALL', label: 'All Questionnaires' },
               ...questionnaires.map((q) => ({ value: q.id, label: q.title })),
@@ -207,7 +210,7 @@ export const ResponseManagementPage: React.FC = () => {
               }
               value={selectedSupplierFilter}
               onChange={setSelectedSupplierFilter}
-              style={{ width: 220 }}
+              style={{ width: isMobile ? '100%' : 220 }}
               options={[
                 { value: 'ALL', label: 'All Suppliers' },
                 ...suppliers.map((s) => ({ value: s.id, label: s.companyName })),
@@ -220,6 +223,7 @@ export const ResponseManagementPage: React.FC = () => {
           dataSource={filteredResponses}
           rowKey="id"
           loading={isLoading}
+          scroll={{ x: 'max-content' }}
           locale={{
             emptyText: (
               <EmptyState
@@ -342,39 +346,74 @@ export const ResponseManagementPage: React.FC = () => {
       <Drawer
         title={inspectedAssignment?.questionnaire?.title || 'Audit Response Inspection'}
         placement="right"
-        width={760}
+        width={isMobile ? '100%' : 760}
         onClose={() => setInspectedAssignmentId(null)}
         open={!!inspectedAssignmentId}
         extra={
-          <Space>
-            {!isSupplier && inspectedAssignment?.status === 'SUBMITTED' && (
-              <Button
-                type="primary"
-                icon={<ThunderboltOutlined />}
-                loading={assessmentMutation.isPending && assessmentMutation.variables === inspectedAssignment.id}
-                disabled={assessmentMutation.isPending}
-                onClick={() => assessmentMutation.mutate(inspectedAssignment.id)}
-                style={{
-                  background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                  borderColor: '#6366f1',
-                }}
-              >
-                {assessmentsMap[inspectedAssignment.id] || inspectedAssignment.aiAssessment
-                  ? 'Re-analyze with AI'
-                  : 'Generate AI Assessment'}
-              </Button>
-            )}
+          !isMobile ? (
+            <Space>
+              {!isSupplier && inspectedAssignment?.status === 'SUBMITTED' && (
+                <Button
+                  type="primary"
+                  icon={<ThunderboltOutlined />}
+                  loading={assessmentMutation.isPending && assessmentMutation.variables === inspectedAssignment.id}
+                  disabled={assessmentMutation.isPending}
+                  onClick={() => assessmentMutation.mutate(inspectedAssignment.id)}
+                  style={{
+                    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                    borderColor: '#6366f1',
+                  }}
+                >
+                  {assessmentsMap[inspectedAssignment.id] || inspectedAssignment.aiAssessment
+                    ? 'Re-analyze with AI'
+                    : 'Generate AI Assessment'}
+                </Button>
+              )}
 
-            {!isSupplier && inspectedAssignment ? (
+              {!isSupplier && inspectedAssignment ? (
+                <Popconfirm
+                  title="Re-open Assignment"
+                  description="Unlock this audit and return it to In Progress for supplier revision?"
+                  onConfirm={() => reopenMutation.mutate(inspectedAssignment.id)}
+                >
+                  <Button icon={<UndoOutlined />}>Re-open for Supplier</Button>
+                </Popconfirm>
+              ) : null}
+            </Space>
+          ) : undefined
+        }
+        footer={
+          isMobile && !isSupplier && inspectedAssignment ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {inspectedAssignment.status === 'SUBMITTED' && (
+                <Button
+                  type="primary"
+                  icon={<ThunderboltOutlined />}
+                  loading={assessmentMutation.isPending && assessmentMutation.variables === inspectedAssignment.id}
+                  disabled={assessmentMutation.isPending}
+                  onClick={() => assessmentMutation.mutate(inspectedAssignment.id)}
+                  block
+                  style={{
+                    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                    borderColor: '#6366f1',
+                  }}
+                >
+                  {assessmentsMap[inspectedAssignment.id] || inspectedAssignment.aiAssessment
+                    ? 'Re-analyze with AI'
+                    : 'Generate AI Assessment'}
+                </Button>
+              )}
               <Popconfirm
                 title="Re-open Assignment"
                 description="Unlock this audit and return it to In Progress for supplier revision?"
                 onConfirm={() => reopenMutation.mutate(inspectedAssignment.id)}
               >
-                <Button icon={<UndoOutlined />}>Re-open for Supplier</Button>
+                <Button icon={<UndoOutlined />} block>
+                  Re-open for Supplier
+                </Button>
               </Popconfirm>
-            ) : null}
-          </Space>
+            </div>
+          ) : undefined
         }
       >
         {isLoadingInspection ? (
