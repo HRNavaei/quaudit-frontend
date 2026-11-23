@@ -14,7 +14,6 @@ import {
   Input,
 } from 'antd';
 import {
-  PlusOutlined,
   SendOutlined,
   UndoOutlined,
   EyeOutlined,
@@ -155,16 +154,6 @@ export const AssignmentManagementPage: React.FC = () => {
             Dispatch audit questionnaires to suppliers for specific appliance product lines.
           </Text>
         </div>
-
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={handleOpenAssignModal}
-          style={{ height: 40 }}
-          block={isMobile}
-        >
-          Assign Questionnaire
-        </Button>
       </div>
 
       <Card bordered={false} style={{ borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
@@ -321,9 +310,15 @@ export const AssignmentManagementPage: React.FC = () => {
                   ) : (
                     <Button
                       size="small"
-                      onClick={() => navigate(`/assignments/${record.id}/complete`)}
+                      icon={<EyeOutlined />}
+                      onClick={() => {
+                        const qId = record.questionnaireId || record.questionnaire?.id;
+                        if (qId) {
+                          navigate(`/questionnaires/${qId}/edit`, { state: { from: '/assignments' } });
+                        }
+                      }}
                     >
-                      Inspect Form
+                      View Questionnaire
                     </Button>
                   )}
                 </Space>

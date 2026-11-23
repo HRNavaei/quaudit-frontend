@@ -30,7 +30,7 @@ import {
   DownOutlined,
   UpOutlined,
 } from '@ant-design/icons';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { questionnairesApi } from '../../api/questionnaires';
 import { Question, QuestionOption, Answer } from '../../types';
@@ -50,6 +50,8 @@ const { Title, Text, Paragraph } = Typography;
 export const QuestionnaireBuilderPage: React.FC = () => {
   const isMobile = useIsMobile();
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
+  const returnPath = (location.state as any)?.from || '/questionnaires';
   const isEditing = !!id && id !== 'new';
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -712,14 +714,14 @@ export const QuestionnaireBuilderPage: React.FC = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <Space wrap>
           {isAssigned ? (
-            <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/questionnaires')}>
+            <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(returnPath)}>
               Back
             </Button>
           ) : (
             <Popconfirm
               title="Discard Questionnaire Changes?"
-              description="Are you sure you want to discard changes and return to questionnaires?"
-              onConfirm={() => navigate('/questionnaires')}
+              description="Are you sure you want to discard changes and return?"
+              onConfirm={() => navigate(returnPath)}
               okText="Discard"
               cancelText="Cancel"
               okButtonProps={{ danger: true }}
