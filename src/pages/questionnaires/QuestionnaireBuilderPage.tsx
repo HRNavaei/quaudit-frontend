@@ -361,10 +361,18 @@ export const QuestionnaireBuilderPage: React.FC = () => {
   ) => {
     if (isAssigned) return;
     const chainIds = getChainQuestionIds(followUpQuestionId, questions);
+    const count = chainIds.length;
+    const title = count === 1 ? 'Delete Follow-up Question?' : 'Delete Follow-up Questions?';
+    const content =
+      count === 1
+        ? 'This option has 1 follow-up question. Deleting it will permanently remove this follow-up question from the questionnaire. Are you sure you want to proceed?'
+        : `This option has ${count} follow-up questions. Deleting it will permanently remove all ${count} of these follow-up questions from the questionnaire. Are you sure you want to proceed?`;
+    const okText = count === 1 ? 'Delete Follow-up Question' : `Delete All ${count} Follow-up Questions`;
+
     Modal.confirm({
-      title: 'Delete Follow-up Chain?',
-      content: `This option has a chain of ${chainIds.length} follow-up question(s). Deleting it will permanently delete this question and its entire follow-up chain. Are you sure you want to proceed?`,
-      okText: 'Delete Follow-up Chain',
+      title,
+      content,
+      okText,
       okType: 'danger',
       onOk: () => {
         const chainSet = new Set(chainIds);
@@ -389,7 +397,9 @@ export const QuestionnaireBuilderPage: React.FC = () => {
           delete next[parentQuestionId];
           return next;
         });
-        message.success('Follow-up chain deleted.');
+        message.success(
+          count === 1 ? 'Follow-up question deleted.' : `${count} follow-up questions deleted.`
+        );
       },
     });
   };
@@ -397,12 +407,18 @@ export const QuestionnaireBuilderPage: React.FC = () => {
   const handleDeleteQuestion = (questionId: string) => {
     if (isAssigned) return;
     const chainIds = getChainQuestionIds(questionId, questions);
+    const followUpCount = chainIds.length - 1;
 
-    if (chainIds.length > 1) {
+    if (followUpCount > 0) {
+      const content =
+        followUpCount === 1
+          ? 'This question has 1 follow-up question attached to its options. Deleting it will permanently remove this question and its follow-up question from the questionnaire. Are you sure you want to proceed?'
+          : `This question has ${followUpCount} follow-up questions attached to its options. Deleting it will permanently remove this question and all ${followUpCount} of its follow-up questions from the questionnaire. Are you sure you want to proceed?`;
+
       Modal.confirm({
-        title: 'Delete Question & Follow-up Chain?',
-        content: `This question has ${chainIds.length - 1} nested follow-up question(s) in its chain. Deleting it will permanently delete this question and its entire follow-up chain. Are you sure you want to proceed?`,
-        okText: 'Delete Question & Chain',
+        title: 'Delete Question & Follow-up Questions?',
+        content,
+        okText: 'Delete Question & Follow-ups',
         okType: 'danger',
         onOk: () => {
           const chainSet = new Set(chainIds);
@@ -419,7 +435,7 @@ export const QuestionnaireBuilderPage: React.FC = () => {
               }))
               .map((q, idx) => ({ ...q, order: idx + 1 }))
           );
-          message.success('Question and follow-up chain deleted.');
+          message.success('Question and follow-up questions deleted.');
         },
       });
     } else {

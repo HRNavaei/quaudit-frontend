@@ -12,7 +12,7 @@ import {
 } from 'antd';
 import { PlusOutlined, DeleteOutlined, BranchesOutlined } from '@ant-design/icons';
 import { Question, QuestionOption, QuestionType } from '../../types';
-import { getEligibleFollowUpTargets } from '../../utils/conditionalLogic';
+import { getEligibleFollowUpTargets, getChainQuestionIds } from '../../utils/conditionalLogic';
 
 const { Text } = Typography;
 
@@ -240,11 +240,19 @@ export const QuestionFormModal: React.FC<QuestionFormModalProps> = ({
                             onClick={() => {
                               const currentOpt = form.getFieldValue(['options', name]);
                               if (currentOpt?.followUpQuestionId) {
+                                const chainIds = getChainQuestionIds(currentOpt.followUpQuestionId, existingQuestions);
+                                const count = chainIds.length;
+                                const title = count === 1 ? 'Delete Follow-up Question?' : 'Delete Follow-up Questions?';
+                                const content =
+                                  count === 1
+                                    ? 'This option has 1 follow-up question. Deleting it will permanently remove this follow-up question from the questionnaire. Are you sure you want to proceed?'
+                                    : `This option has ${count} follow-up questions. Deleting it will permanently remove all ${count} of these follow-up questions from the questionnaire. Are you sure you want to proceed?`;
+                                const okText = count === 1 ? 'Delete Follow-up Question' : `Delete All ${count} Follow-up Questions`;
+
                                 Modal.confirm({
-                                  title: 'Delete Option with Follow-up Chain?',
-                                  content:
-                                    'This option has an attached follow-up chain. Deleting it will delete the entire chain of follow-up questions. Are you sure you want to proceed?',
-                                  okText: 'Delete Option & Chain',
+                                  title,
+                                  content,
+                                  okText,
                                   okType: 'danger',
                                   onOk: () => remove(name),
                                 });
