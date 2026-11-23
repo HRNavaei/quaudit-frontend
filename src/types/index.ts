@@ -96,6 +96,8 @@ export interface QuestionnaireAssignment {
   supplier?: Supplier;
   product?: Product | null;
   answers?: Answer[];
+  _count?: { answers: number };
+  aiAssessment?: AiAssessmentResponse | null;
 }
 
 export interface Answer {

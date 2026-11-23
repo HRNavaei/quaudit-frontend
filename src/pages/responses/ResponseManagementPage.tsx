@@ -11,6 +11,7 @@ import {
   Descriptions,
   Popconfirm,
   message,
+  Spin,
 } from 'antd';
 import {
   EyeOutlined,
@@ -27,7 +28,7 @@ import { useAuth } from '../../context/AuthContext';
 import { assignmentsApi } from '../../api/assignments';
 import { questionnairesApi } from '../../api/questionnaires';
 import { suppliersApi } from '../../api/suppliers';
-import { QuestionnaireAssignment, Answer, AiAssessmentResponse } from '../../types';
+import { Answer, AiAssessmentResponse } from '../../types';
 import { DynamicQuestionRenderer } from '../../components/questionnaire/DynamicQuestionRenderer';
 import { AiAssessmentCard } from '../../components/ai/AiAssessmentCard';
 import { StatusBadge } from '../../components/common/StatusBadge';
@@ -45,13 +46,21 @@ export const ResponseManagementPage: React.FC = () => {
 
   const [selectedQuestionnaireFilter, setSelectedQuestionnaireFilter] = useState<string>('ALL');
   const [selectedSupplierFilter, setSelectedSupplierFilter] = useState<string>('ALL');
-  const [inspectedAssignment, setInspectedAssignment] = useState<QuestionnaireAssignment | null>(null);
+  const [inspectedAssignmentId, setInspectedAssignmentId] = useState<string | null>(null);
   const [assessmentsMap, setAssessmentsMap] = useState<Record<string, AiAssessmentResponse>>({});
 
   const { data: assignments = [], isLoading } = useQuery({
     queryKey: ['assignments', isSupplier ? supplierId : 'all'],
     queryFn: () => assignmentsApi.getAll(isSupplier && supplierId ? { supplierId } : undefined),
   });
+
+  const { data: fullInspectedAssignment, isLoading: isLoadingInspection } = useQuery({
+    queryKey: ['assignment-detail', inspectedAssignmentId],
+    queryFn: () => assignmentsApi.getById(inspectedAssignmentId!),
+    enabled: !!inspectedAssignmentId,
+  });
+
+  const inspectedAssignment = fullInspectedAssignment || null;
 
   const { data: questionnaires = [] } = useQuery({
     queryKey: ['questionnaires'],
@@ -94,7 +103,7 @@ export const ResponseManagementPage: React.FC = () => {
     onSuccess: () => {
       message.success('Assignment has been re-opened for supplier revision.');
       queryClient.invalidateQueries({ queryKey: ['assignments'] });
-      setInspectedAssignment(null);
+      setInspectedAssignmentId(null);
     },
     onError: (err: any) => {
       message.error(err?.message || 'Failed to reopen assignment');
@@ -107,7 +116,7 @@ export const ResponseManagementPage: React.FC = () => {
     if (highlightId && assignments.length > 0) {
       const found = assignments.find((a) => a.id === highlightId);
       if (found) {
-        setInspectedAssignment(found);
+        setInspectedAssignmentId(found.id);
       }
     }
   }, [location.state, assignments]);
@@ -231,8 +240,8 @@ export const ResponseManagementPage: React.FC = () => {
             {
               title: 'Answers Logged',
               key: 'answers',
-              render: (_, record) => (
-                <Tag color="cyan">{record.answers?.length || 0} Answers</Tag>
+              render: (_, record: any) => (
+                <Tag color="cyan">{record._count?.answers ?? record.answers?.length ?? 0} Answers</Tag>
               ),
             },
             {
@@ -255,7 +264,7 @@ export const ResponseManagementPage: React.FC = () => {
                     type="primary"
                     size="small"
                     icon={<EyeOutlined />}
-                    onClick={() => setInspectedAssignment(record)}
+                    onClick={() => setInspectedAssignmentId(record.id)}
                   >
                     Inspect Answers
                   </Button>
@@ -266,7 +275,7 @@ export const ResponseManagementPage: React.FC = () => {
                       icon={<ThunderboltOutlined style={{ color: '#6366f1' }} />}
                       loading={assessmentMutation.isPending && assessmentMutation.variables === record.id}
                       onClick={() => {
-                        setInspectedAssignment(record);
+                        setInspectedAssignmentId(record.id);
                         if (!assessmentsMap[record.id]) {
                           assessmentMutation.mutate(record.id);
                         }
@@ -299,8 +308,8 @@ export const ResponseManagementPage: React.FC = () => {
         title={inspectedAssignment?.questionnaire?.title || 'Audit Response Inspection'}
         placement="right"
         width={760}
-        onClose={() => setInspectedAssignment(null)}
-        open={!!inspectedAssignment}
+        onClose={() => setInspectedAssignmentId(null)}
+        open={!!inspectedAssignmentId}
         extra={
           <Space>
             {!isSupplier && inspectedAssignment?.status === 'SUBMITTED' && (
@@ -315,7 +324,7 @@ export const ResponseManagementPage: React.FC = () => {
                   borderColor: '#6366f1',
                 }}
               >
-                {assessmentsMap[inspectedAssignment.id]
+                {assessmentsMap[inspectedAssignment.id] || inspectedAssignment.aiAssessment
                   ? 'Re-analyze with AI'
                   : 'Generate AI Assessment'}
               </Button>
@@ -333,8 +342,14 @@ export const ResponseManagementPage: React.FC = () => {
           </Space>
         }
       >
-        {inspectedAssignment && (
-          <div>
+        {isLoadingInspection ? (
+          <div style={{ textAlign: 'center', padding: '60px 0' }}>
+            <Spin size="large" />
+            <div style={{ marginTop: 16, color: '#64748b' }}>Loading submitted responses...</div>
+          </div>
+        ) : (
+          inspectedAssignment && (
+            <div>
             <Descriptions column={2} bordered size="small" style={{ marginBottom: 20 }}>
               <Descriptions.Item label="Supplier">
                 <strong>{inspectedAssignment.supplier?.companyName}</strong>
@@ -442,7 +457,7 @@ export const ResponseManagementPage: React.FC = () => {
               ))}
             </div>
           </div>
-        )}
+        ))}
       </Drawer>
     </div>
   );
