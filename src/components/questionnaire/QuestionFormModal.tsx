@@ -245,8 +245,8 @@ export const QuestionFormModal: React.FC<QuestionFormModalProps> = ({
                                 const title = count === 1 ? 'Delete Follow-up Question?' : 'Delete Follow-up Questions?';
                                 const content =
                                   count === 1
-                                    ? 'This option has 1 follow-up question. Deleting it will permanently remove this follow-up question from the questionnaire. Are you sure you want to proceed?'
-                                    : `This option has ${count} follow-up questions. Deleting it will permanently remove all ${count} of these follow-up questions from the questionnaire. Are you sure you want to proceed?`;
+                                    ? 'This option has 1 follow-up question. Deleting it will permanently remove that follow-up question from the questionnaire. Are you sure you want to proceed?'
+                                    : `This option has ${count} follow-up questions. Deleting it will permanently remove those ${count} follow-up questions from the questionnaire. Are you sure you want to proceed?`;
                                 const okText = count === 1 ? 'Delete Follow-up Question' : `Delete All ${count} Follow-up Questions`;
 
                                 Modal.confirm({
