@@ -284,6 +284,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       collapsible
       collapsed={collapsed}
       onCollapse={onCollapse}
+      trigger={null}
       width={240}
       theme="light"
       style={{
