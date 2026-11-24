@@ -85,7 +85,6 @@ export const Header: React.FC<HeaderProps> = ({
   const getAvatarBg = () => {
     switch (user.role) {
       case 'ADMIN':
-        return '#722ed1';
       case 'SUPERVISOR':
         return '#1677ff';
       case 'SUPPLIER':

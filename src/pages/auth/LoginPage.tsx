@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Card, Form, Input, Button, Typography, Space, Alert, Tag } from 'antd';
-import { LockOutlined, MailOutlined, CrownOutlined } from '@ant-design/icons';
+import { LockOutlined, MailOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { LoginDto } from '../../types';
@@ -167,12 +167,12 @@ export const LoginPage: React.FC = () => {
                 <Button
                   block
                   size="middle"
-                  icon={<CrownOutlined style={{ color: '#722ed1' }} />}
+                  icon={<SafetyCertificateOutlined style={{ color: '#1677ff' }} />}
                   onClick={() => handleQuickFill('admin@quaudit.com', 'Admin@123456')}
                   style={{ textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
                 >
-                  <span>Admin: <strong>admin@quaudit.com</strong></span>
-                  <Tag color="purple">ADMIN</Tag>
+                  <span>Supervisor: <strong>admin@quaudit.com</strong></span>
+                  <Tag color="blue">SUPERVISOR</Tag>
                 </Button>
               </Space>
             </div>

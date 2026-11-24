@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tag } from 'antd';
-import { SafetyCertificateOutlined, ShopOutlined, CrownOutlined } from '@ant-design/icons';
+import { SafetyCertificateOutlined, ShopOutlined } from '@ant-design/icons';
 import { Role } from '../../types';
 
 interface RoleBadgeProps {
@@ -10,11 +10,6 @@ interface RoleBadgeProps {
 export const RoleBadge: React.FC<RoleBadgeProps> = ({ role }) => {
   switch (role) {
     case 'ADMIN':
-      return (
-        <Tag color="purple" icon={<CrownOutlined />}>
-          ADMIN
-        </Tag>
-      );
     case 'SUPERVISOR':
       return (
         <Tag color="blue" icon={<SafetyCertificateOutlined />}>

@@ -68,7 +68,7 @@ export const QuestionnaireCompletionPage: React.FC = () => {
       } else if (status === 400) {
         message.error(msg || 'Assignment is not submitted yet.');
       } else if (status === 403) {
-        message.error('Forbidden: Only supervisors and admins can generate AI assessments.');
+        message.error('Forbidden: Only supervisors can generate AI assessments.');
       } else {
         message.error(msg || 'Failed to generate AI assessment');
       }

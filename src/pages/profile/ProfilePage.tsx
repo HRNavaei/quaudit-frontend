@@ -77,9 +77,7 @@ export const ProfilePage: React.FC = () => {
               size={84}
               style={{
                 backgroundColor:
-                  user.role === 'ADMIN'
-                    ? '#722ed1'
-                    : user.role === 'SUPERVISOR'
+                  user.role === 'ADMIN' || user.role === 'SUPERVISOR'
                     ? '#1677ff'
                     : '#13c2c2',
                 fontSize: 32,
