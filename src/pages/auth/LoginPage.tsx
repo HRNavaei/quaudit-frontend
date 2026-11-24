@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Card, Form, Input, Button, Typography, Space, Alert, Tag } from 'antd';
-import { LockOutlined, MailOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
+import { LockOutlined, MailOutlined, SafetyCertificateOutlined, ShopOutlined } from '@ant-design/icons';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { LoginDto } from '../../types';
@@ -168,11 +168,21 @@ export const LoginPage: React.FC = () => {
                   block
                   size="middle"
                   icon={<SafetyCertificateOutlined style={{ color: '#1677ff' }} />}
-                  onClick={() => handleQuickFill('admin@quaudit.com', 'Admin@123456')}
+                  onClick={() => handleQuickFill('supervisor@quaudit.com', 'Supervisor@123456')}
                   style={{ textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
                 >
-                  <span>Supervisor: <strong>admin@quaudit.com</strong></span>
+                  <span>Supervisor: <strong>supervisor@quaudit.com</strong></span>
                   <Tag color="blue">SUPERVISOR</Tag>
+                </Button>
+                <Button
+                  block
+                  size="middle"
+                  icon={<ShopOutlined style={{ color: '#13c2c2' }} />}
+                  onClick={() => handleQuickFill('supplier@quaudit.com', 'Supplier@123456')}
+                  style={{ textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                >
+                  <span>Supplier: <strong>supplier@quaudit.com</strong></span>
+                  <Tag color="cyan">SUPPLIER</Tag>
                 </Button>
               </Space>
             </div>

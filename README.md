@@ -58,7 +58,7 @@ npm run build
 
 ## 👥 Pre-Configured Test Accounts
 
-You can click any of the **Quick Test Account** buttons on the Login page (`/login`) or use the role switcher in the top navigation header:
+You can click any of the **Quick Seeded Accounts** buttons on the Login page (`/login`) or sign in with the credentials below:
 
 | Role | Email | Password | Description |
 |---|---|---|---|
