@@ -27,7 +27,7 @@ export const RegisterPage: React.FC = () => {
     setLoading(true);
     try {
       await register({
-        email: values.email.trim(),
+        email: values.email.trim().toLowerCase(),
         password: values.password,
         firstName: values.firstName.trim(),
         lastName: values.lastName.trim(),

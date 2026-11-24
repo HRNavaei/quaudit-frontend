@@ -21,7 +21,11 @@ export const LoginPage: React.FC = () => {
     setError(null);
     setLoading(true);
     try {
-      await login(values);
+      const normalizedValues: LoginDto = {
+        ...values,
+        email: values.email.trim().toLowerCase(),
+      };
+      await login(normalizedValues);
       const stored = localStorage.getItem('quaudit_user');
       const currentUser = stored ? JSON.parse(stored) : null;
       if (
