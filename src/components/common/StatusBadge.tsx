@@ -16,9 +16,8 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
 
     // Assignment statuses
     case 'PENDING':
-      return <Tag color="gold">Pending</Tag>;
     case 'IN_PROGRESS':
-      return <Tag color="processing">In Progress</Tag>;
+      return <Tag color="gold">Pending</Tag>;
     case 'SUBMITTED':
       return <Tag color="green">Submitted</Tag>;
 

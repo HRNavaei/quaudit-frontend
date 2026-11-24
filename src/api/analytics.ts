@@ -14,8 +14,8 @@ export const analyticsApi = {
 
       const totalAssignments = allAssignments.length;
       const completedAssignments = allAssignments.filter((a) => a.status === 'SUBMITTED').length;
-      const inProgressAssignments = allAssignments.filter((a) => a.status === 'IN_PROGRESS').length;
-      const pendingAssignments = allAssignments.filter((a) => a.status === 'PENDING').length;
+      const pendingAssignments = allAssignments.filter((a) => a.status !== 'SUBMITTED').length;
+      const inProgressAssignments = 0;
       const completionRate =
         totalAssignments > 0 ? Math.round((completedAssignments / totalAssignments) * 100) : 0;
 

@@ -39,7 +39,10 @@ import {
 
 const { Title, Text, Paragraph } = Typography;
 
-const STATUS_COLORS = ['#faad14', '#1677ff', '#52c41a'];
+const STATUS_COLORS: Record<string, string> = {
+  Pending: '#faad14',
+  Completed: '#52c41a',
+};
 
 export const ResponseAnalysisPage: React.FC = () => {
   const isMobile = useIsMobile();
@@ -72,10 +75,10 @@ export const ResponseAnalysisPage: React.FC = () => {
     return <LoadingSpinner tip="Loading analytics..." />;
   }
 
+  const pendingCount = stats ? (stats.pendingAssignments || 0) + (stats.inProgressAssignments || 0) : 0;
   const statusPieData = stats
     ? [
-        { name: 'Pending', value: stats.pendingAssignments },
-        { name: 'In Progress', value: stats.inProgressAssignments },
+        { name: 'Pending', value: pendingCount },
         { name: 'Completed', value: stats.completedAssignments },
       ].filter((item) => item.value > 0)
     : [];
@@ -131,8 +134,8 @@ export const ResponseAnalysisPage: React.FC = () => {
             <Col xs={24} sm={12} lg={6}>
               <Card bordered={false} style={{ borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
                 <Statistic
-                  title="In Progress"
-                  value={stats.inProgressAssignments}
+                  title="Pending Submissions"
+                  value={pendingCount}
                   prefix={<ClockCircleOutlined style={{ color: '#faad14', marginRight: 8 }} />}
                 />
               </Card>
@@ -174,8 +177,8 @@ export const ResponseAnalysisPage: React.FC = () => {
                         innerRadius={45}
                         paddingAngle={4}
                       >
-                        {statusPieData.map((_, index) => (
-                          <Cell key={`cell-${index}`} fill={STATUS_COLORS[index % STATUS_COLORS.length]} />
+                        {statusPieData.map((item, index) => (
+                          <Cell key={`cell-${index}`} fill={STATUS_COLORS[item.name] || '#1677ff'} />
                         ))}
                       </Pie>
                       <RechartsTooltip />

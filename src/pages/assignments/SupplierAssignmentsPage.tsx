@@ -1,7 +1,6 @@
 import React from 'react';
 import { Card, Row, Col, Typography, Button, Tag, Space } from 'antd';
 import {
-  AuditOutlined,
   ClockCircleOutlined,
   CheckCircleOutlined,
   ArrowRightOutlined,
@@ -35,8 +34,7 @@ export const SupplierAssignmentsPage: React.FC = () => {
     return <LoadingSpinner tip="Loading your assigned audits..." />;
   }
 
-  const pendingList = assignments.filter((a) => a.status === 'PENDING');
-  const inProgressList = assignments.filter((a) => a.status === 'IN_PROGRESS');
+  const pendingList = assignments.filter((a) => a.status !== 'SUBMITTED');
   const submittedList = assignments.filter((a) => a.status === 'SUBMITTED');
 
   return (
@@ -52,7 +50,7 @@ export const SupplierAssignmentsPage: React.FC = () => {
 
       {/* Summary counters */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={8}>
+        <Col xs={24} sm={12}>
           <Card bordered={false} style={{ borderRadius: 8, background: '#fffbe6', border: '1px solid #ffe58f' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
@@ -66,21 +64,7 @@ export const SupplierAssignmentsPage: React.FC = () => {
           </Card>
         </Col>
 
-        <Col xs={24} sm={8}>
-          <Card bordered={false} style={{ borderRadius: 8, background: '#e6f4ff', border: '1px solid #91caff' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div>
-                <Text type="secondary" style={{ fontSize: 13 }}>In Progress</Text>
-                <div style={{ fontSize: 24, fontWeight: 700, color: '#0958d9' }}>
-                  {inProgressList.length}
-                </div>
-              </div>
-              <AuditOutlined style={{ fontSize: 28, color: '#1677ff' }} />
-            </div>
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={8}>
+        <Col xs={24} sm={12}>
           <Card bordered={false} style={{ borderRadius: 8, background: '#f6ffed', border: '1px solid #b7eb8f' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
@@ -104,8 +88,6 @@ export const SupplierAssignmentsPage: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {assignments.map((assignment) => {
             const q = assignment.questionnaire;
-            const isPending = assignment.status === 'PENDING';
-            const isInProgress = assignment.status === 'IN_PROGRESS';
             const isSubmitted = assignment.status === 'SUBMITTED';
 
             return (
@@ -114,7 +96,7 @@ export const SupplierAssignmentsPage: React.FC = () => {
                 style={{
                   borderRadius: 10,
                   boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                  border: isPending ? '1px solid #ffe58f' : isInProgress ? '1px solid #91caff' : '1px solid #e2e8f0',
+                  border: !isSubmitted ? '1px solid #ffe58f' : '1px solid #e2e8f0',
                 }}
                 styles={{ body: { padding: isMobile ? '16px 14px' : '20px 24px' } }}
               >
@@ -163,9 +145,7 @@ export const SupplierAssignmentsPage: React.FC = () => {
                       onClick={() => navigate(`/assignments/${assignment.id}/complete`)}
                       style={{ minWidth: isMobile ? '100%' : 160 }}
                     >
-                      {isPending && 'Start Audit'}
-                      {isInProgress && 'Continue Audit'}
-                      {isSubmitted && 'View Submission'}
+                      {isSubmitted ? 'View Submission' : (assignment.answers && assignment.answers.length > 0 ? 'Continue Audit' : 'Start Audit')}
                       <ArrowRightOutlined style={{ marginLeft: 6 }} />
                     </Button>
                   </div>

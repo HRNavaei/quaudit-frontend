@@ -68,13 +68,6 @@ export const assignmentsApi = {
     return response.data;
   },
 
-  reopen: async (assignmentId: string): Promise<QuestionnaireAssignment> => {
-    const response = await apiClient.post<QuestionnaireAssignment>(
-      `/assignments/${assignmentId}/reopen`
-    );
-    return response.data;
-  },
-
   getResponses: async (questionnaireId: string): Promise<QuestionnaireResponsesResult> => {
     const response = await apiClient.get<QuestionnaireResponsesResult>(
       `/assignments/questionnaire/${questionnaireId}/responses`

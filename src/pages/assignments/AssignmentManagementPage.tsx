@@ -9,13 +9,11 @@ import {
   Form,
   Typography,
   message,
-  Popconfirm,
   Tag,
   Input,
 } from 'antd';
 import {
   SendOutlined,
-  UndoOutlined,
   EyeOutlined,
   ShopOutlined,
   AppstoreOutlined,
@@ -95,17 +93,6 @@ export const AssignmentManagementPage: React.FC = () => {
     },
     onError: (err: any) => {
       message.error(err?.message || 'Failed to assign questionnaire');
-    },
-  });
-
-  const reopenMutation = useMutation({
-    mutationFn: assignmentsApi.reopen,
-    onSuccess: () => {
-      message.success('Assignment has been re-opened for supplier revision');
-      queryClient.invalidateQueries({ queryKey: ['assignments'] });
-    },
-    onError: (err: any) => {
-      message.error(err?.message || 'Failed to reopen assignment');
     },
   });
 
@@ -189,7 +176,6 @@ export const AssignmentManagementPage: React.FC = () => {
             options={[
               { value: 'ALL', label: 'All Statuses' },
               { value: 'PENDING', label: 'Pending' },
-              { value: 'IN_PROGRESS', label: 'In Progress' },
               { value: 'SUBMITTED', label: 'Submitted' },
             ]}
           />
@@ -283,30 +269,14 @@ export const AssignmentManagementPage: React.FC = () => {
               render: (_, record: QuestionnaireAssignment) => (
                 <Space>
                   {record.status === 'SUBMITTED' ? (
-                    <>
-                      <Button
-                        type="primary"
-                        size="small"
-                        icon={<EyeOutlined />}
-                        onClick={() => navigate('/responses', { state: { highlightId: record.id } })}
-                      >
-                        Review
-                      </Button>
-
-                      <Popconfirm
-                        title="Re-open Assignment"
-                        description="Allow the supplier to revise and resubmit their answers?"
-                        onConfirm={() => reopenMutation.mutate(record.id)}
-                      >
-                        <Button
-                          size="small"
-                          icon={<UndoOutlined />}
-                          loading={reopenMutation.isPending}
-                        >
-                          Re-open
-                        </Button>
-                      </Popconfirm>
-                    </>
+                    <Button
+                      type="primary"
+                      size="small"
+                      icon={<EyeOutlined />}
+                      onClick={() => navigate('/responses', { state: { highlightId: record.id } })}
+                    >
+                      Review
+                    </Button>
                   ) : (
                     <Button
                       size="small"

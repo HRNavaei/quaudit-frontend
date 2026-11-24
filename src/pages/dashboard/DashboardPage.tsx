@@ -73,8 +73,7 @@ export const DashboardPage: React.FC = () => {
   // Compute stats
   const totalAssignments = assignments.length;
   const completedAssignments = assignments.filter((a) => a.status === 'SUBMITTED').length;
-  const inProgressAssignments = assignments.filter((a) => a.status === 'IN_PROGRESS').length;
-  const pendingAssignments = assignments.filter((a) => a.status === 'PENDING').length;
+  const pendingAssignments = assignments.filter((a) => a.status !== 'SUBMITTED').length;
   const completionRate = totalAssignments > 0 ? Math.round((completedAssignments / totalAssignments) * 100) : 0;
 
   return (
@@ -351,10 +350,6 @@ export const DashboardPage: React.FC = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                 <Text type="secondary">Pending Action</Text>
                 <Tag color="gold">{pendingAssignments}</Tag>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                <Text type="secondary">In Progress</Text>
-                <Tag color="blue">{inProgressAssignments}</Tag>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Text type="secondary">Completed</Text>

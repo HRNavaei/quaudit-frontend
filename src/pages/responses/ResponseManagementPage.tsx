@@ -9,14 +9,12 @@ import {
   Tag,
   Drawer,
   Descriptions,
-  Popconfirm,
   message,
   Spin,
   Input,
 } from 'antd';
 import {
   EyeOutlined,
-  UndoOutlined,
   ShopOutlined,
   AppstoreOutlined,
   CheckCircleOutlined,
@@ -24,7 +22,7 @@ import {
   ThunderboltOutlined,
   SearchOutlined,
 } from '@ant-design/icons';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { assignmentsApi } from '../../api/assignments';
@@ -44,7 +42,6 @@ export const ResponseManagementPage: React.FC = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const location = useLocation();
-  const queryClient = useQueryClient();
   const { user } = useAuth();
   const isSupplier = user?.role === 'SUPPLIER';
   const supplierId = user?.supplier?.id;
@@ -100,19 +97,6 @@ export const ResponseManagementPage: React.FC = () => {
       } else {
         message.error(msg || 'Failed to generate AI assessment');
       }
-    },
-  });
-
-  // Re-open mutation
-  const reopenMutation = useMutation({
-    mutationFn: (id: string) => assignmentsApi.reopen(id),
-    onSuccess: () => {
-      message.success('Assignment has been re-opened for supplier revision.');
-      queryClient.invalidateQueries({ queryKey: ['assignments'] });
-      setInspectedAssignmentId(null);
-    },
-    onError: (err: any) => {
-      message.error(err?.message || 'Failed to reopen assignment');
     },
   });
 
@@ -323,18 +307,6 @@ export const ResponseManagementPage: React.FC = () => {
                       AI Review
                     </Button>
                   )}
-
-                  {!isSupplier && (
-                    <Popconfirm
-                      title="Re-open Assignment"
-                      description="Allow the supplier to revise and resubmit their answers?"
-                      onConfirm={() => reopenMutation.mutate(record.id)}
-                    >
-                      <Button size="small" icon={<UndoOutlined />}>
-                        Re-open
-                      </Button>
-                    </Popconfirm>
-                  )}
                 </Space>
               ),
             },
@@ -369,16 +341,6 @@ export const ResponseManagementPage: React.FC = () => {
                     : 'Generate AI Assessment'}
                 </Button>
               )}
-
-              {!isSupplier && inspectedAssignment ? (
-                <Popconfirm
-                  title="Re-open Assignment"
-                  description="Unlock this audit and return it to In Progress for supplier revision?"
-                  onConfirm={() => reopenMutation.mutate(inspectedAssignment.id)}
-                >
-                  <Button icon={<UndoOutlined />}>Re-open for Supplier</Button>
-                </Popconfirm>
-              ) : null}
             </Space>
           ) : undefined
         }
@@ -403,15 +365,6 @@ export const ResponseManagementPage: React.FC = () => {
                     : 'Generate AI Assessment'}
                 </Button>
               )}
-              <Popconfirm
-                title="Re-open Assignment"
-                description="Unlock this audit and return it to In Progress for supplier revision?"
-                onConfirm={() => reopenMutation.mutate(inspectedAssignment.id)}
-              >
-                <Button icon={<UndoOutlined />} block>
-                  Re-open for Supplier
-                </Button>
-              </Popconfirm>
             </div>
           ) : undefined
         }

@@ -5,7 +5,7 @@ export type QuestionnaireStatus = 'DRAFT' | 'ASSIGNED';
 
 export type QuestionType = 'TEXT' | 'YES_NO' | 'SINGLE_CHOICE' | 'NUMBER';
 
-export type AssignmentStatus = 'PENDING' | 'IN_PROGRESS' | 'SUBMITTED';
+export type AssignmentStatus = 'PENDING' | 'SUBMITTED';
 
 export interface User {
   id: string;

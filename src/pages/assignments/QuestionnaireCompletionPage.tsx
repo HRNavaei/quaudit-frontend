@@ -266,7 +266,7 @@ export const QuestionnaireCompletionPage: React.FC = () => {
           showIcon
           icon={<CheckCircleOutlined />}
           message="Audit Submitted & Locked"
-          description={`This response was submitted on ${assignment.submittedAt ? new Date(assignment.submittedAt).toLocaleString() : 'earlier'}. To make alterations, please contact your quality supervisor to re-open the audit.`}
+          description={`This audit response was finalized and submitted on ${assignment.submittedAt ? new Date(assignment.submittedAt).toLocaleString() : 'earlier'}. Answers are permanently locked as an official compliance record and cannot be revised.`}
           style={{ marginBottom: 20 }}
         />
       )}
@@ -433,16 +433,17 @@ export const QuestionnaireCompletionPage: React.FC = () => {
           setSubmitConfirmOpen(false);
           saveMutation.mutate(true);
         }}
-        okText="Confirm & Submit"
+        okText="Yes, Submit Final Audit"
         cancelText="Review Answers"
+        okButtonProps={{ type: 'primary' }}
       >
-        <p>
+        <p style={{ fontWeight: 600, color: '#0f172a' }}>
           Are you sure you want to finalize and submit this quality audit response?
         </p>
         <Alert
           type="warning"
-          message="Submission is Final"
-          description="Once submitted, answers become immutable for compliance auditability. A supervisor must explicitly re-open the assignment if modifications are required."
+          message="Submission is Permanent & Irreversible"
+          description="Once submitted, your answers become an immutable compliance record and cannot be revised or resubmitted. Please ensure all answers and evidence are accurate before proceeding."
           showIcon
         />
       </Modal>
